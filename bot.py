@@ -5,7 +5,7 @@ import json
 # अपना टेलीग्राम बॉट टोकन यहाँ डालें (हम इसे बाद में BotFather से लेकर अपडेट करेंगे)
 BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
 # यह लिंक गिटहब पेजेस का होगा, जिसे हम अगले स्टेप में जनरेट करेंगे
-WEBAPP_URL = "YOUR_GITHUB_PAGES_URL/index.html"
+WEBAPP_URL = "https://jigur968-stack.github.io/fit-india-ai-bot/index.html"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
