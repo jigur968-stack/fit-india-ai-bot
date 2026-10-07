@@ -3,7 +3,7 @@ from telebot.types import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
 import json
 
 # अपना टेलीग्राम बॉट टोकन यहाँ डालें (हम इसे बाद में BotFather से लेकर अपडेट करेंगे)
-BOT_TOKEN = "8724525159:AAHbuSVs1GzQU2y6ImQmnU025DgtovSBGTs"
+BOT_TOKEN = "8724525159:AAEN3QxLde5Aeln5jmaG2P0Wy7yKu9q8jGs"
 # यह लिंक गिटहब पेजेस का होगा, जिसे हम अगले स्टेप में जनरेट करेंगे
 WEBAPP_URL = "https://jigur968-stack.github.io/fit-india-ai-bot/index.html"
 
