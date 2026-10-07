@@ -16,36 +16,35 @@
 </head>
 <body>
 
-    <h2>अपनी प्रोफाइल बनाएं 🏋️‍♂️</h2>
+    <h2>Create Profile 🏋️‍♂️</h2>
     
     <form id="profileForm">
-        <div class="form-group"><label>आपका नाम</label><input type="text" id="name" required></div>
-        <div class="form-group"><label>उम्र</label><input type="number" id="age" required></div>
+        <div class="form-group"><label>Name</label><input type="text" id="name" placeholder="Name" required></div>
+        <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="Age" required></div>
         <div class="form-group">
-            <label>जेंडर</label>
+            <label>Gender</label>
             <select id="gender" required>
-                <option value="">चुनें...</option><option value="Male">Male</option><option value="Female">Female</option>
+                <option value="">Select...</option><option value="Male">Male</option><option value="Female">Female</option>
             </select>
         </div>
-        <div class="form-group"><label>हाइट (cm में)</label><input type="number" id="height" placeholder="उदा. 170" required></div>
-        <div class="form-group"><label>वजन (kg में)</label><input type="number" id="weight" placeholder="उदा. 70" required></div>
+        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="e.g. 170" required></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" placeholder="e.g. 70" required></div>
         <div class="form-group">
-            <label>आपका गोल क्या है?</label>
+            <label>Goal</label>
             <select id="goal" required>
-                <option value="">चुनें...</option><option value="Weight Loss">Weight Loss</option><option value="Muscle Gain">Muscle Gain</option><option value="Stay Fit">Stay Fit</option>
+                <option value="">Select...</option><option value="Weight Loss">Weight Loss</option><option value="Muscle Gain">Muscle Gain</option><option value="Stay Fit">Stay Fit</option>
             </select>
         </div>
-        <!-- Phase 1: Medical Safeguard -->
         <div class="form-group">
-            <label>क्या आपको कोई मेडिकल समस्या (Thyroid, Diabetes, BP आदि) है?</label>
+            <label>Medical Condition (Thyroid, BP, Diabetes, etc.)</label>
             <select id="medical" required>
-                <option value="">चुनें...</option>
-                <option value="Yes">हाँ (Yes)</option>
-                <option value="No">नहीं (No)</option>
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
             </select>
         </div>
         
-        <button type="submit">डेटा सेव करें 🚀</button>
+        <button type="submit">Save Data 🚀</button>
     </form>
 
     <script>
@@ -61,7 +60,7 @@
                 height: document.getElementById("height").value,
                 weight: document.getElementById("weight").value,
                 goal: document.getElementById("goal").value,
-                medical: document.getElementById("medical").value // मेडिकल डेटा
+                medical: document.getElementById("medical").value
             };
             tg.sendData(JSON.stringify(data));
         });
