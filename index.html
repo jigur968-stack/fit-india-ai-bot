@@ -1,94 +1,70 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fit India AI - User Profile</title>
+    <title>Fit India AI - Profile</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            padding: 20px; 
-            background-color: var(--tg-theme-bg-color, #f4f4f9); 
-            color: var(--tg-theme-text-color, #000000); 
-        }
-        h2 { text-align: center; }
-        input, select { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border-radius: 8px; 
-            border: 1px solid #ccc; 
-            box-sizing: border-box;
-        }
-        button { 
-            width: 100%; 
-            padding: 15px; 
-            background-color: var(--tg-theme-button-color, #28a745); 
-            color: var(--tg-theme-button-text-color, #ffffff); 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            margin-top: 15px;
-        }
+        body { font-family: sans-serif; padding: 20px; background-color: var(--tg-theme-bg-color, #f4f4f4); color: var(--tg-theme-text-color, #000); }
+        h2 { text-align: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 14px; background-color: #2481cc; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h2>अपनी फिटनेस प्रोफाइल बनाएं</h2>
-    <form id="userForm">
-        <input type="text" id="name" placeholder="आपका नाम" required>
-        <input type="number" id="age" placeholder="आपकी उम्र" required>
+
+    <h2>अपनी प्रोफाइल बनाएं 🏋️‍♂️</h2>
+    
+    <form id="profileForm">
+        <div class="form-group"><label>आपका नाम</label><input type="text" id="name" required></div>
+        <div class="form-group"><label>उम्र</label><input type="number" id="age" required></div>
+        <div class="form-group">
+            <label>जेंडर</label>
+            <select id="gender" required>
+                <option value="">चुनें...</option><option value="Male">Male</option><option value="Female">Female</option>
+            </select>
+        </div>
+        <div class="form-group"><label>हाइट (cm में)</label><input type="number" id="height" placeholder="उदा. 170" required></div>
+        <div class="form-group"><label>वजन (kg में)</label><input type="number" id="weight" placeholder="उदा. 70" required></div>
+        <div class="form-group">
+            <label>आपका गोल क्या है?</label>
+            <select id="goal" required>
+                <option value="">चुनें...</option><option value="Weight Loss">Weight Loss</option><option value="Muscle Gain">Muscle Gain</option><option value="Stay Fit">Stay Fit</option>
+            </select>
+        </div>
+        <!-- Phase 1: Medical Safeguard -->
+        <div class="form-group">
+            <label>क्या आपको कोई मेडिकल समस्या (Thyroid, Diabetes, BP आदि) है?</label>
+            <select id="medical" required>
+                <option value="">चुनें...</option>
+                <option value="Yes">हाँ (Yes)</option>
+                <option value="No">नहीं (No)</option>
+            </select>
+        </div>
         
-        <select id="gender" required>
-            <option value="">जेंडर चुनें</option>
-            <option value="Male">पुरुष</option>
-            <option value="Female">महिला</option>
-        </select>
-        
-        <input type="number" id="height" placeholder="हाइट (cm में)" required>
-        <input type="number" id="weight" placeholder="वजन (kg में)" required>
-        
-        <select id="goal" required>
-            <option value="">आपका फिटनेस लक्ष्य क्या है?</option>
-            <option value="Weight Loss">वजन कम करना (Weight Loss)</option>
-            <option value="Muscle Gain">मसल बनाना (Muscle Gain)</option>
-            <option value="Stay Fit">फिट रहना (Stay Fit)</option>
-        </select>
-        
-        <button type="button" onclick="submitData()">सबमिट करें</button>
+        <button type="submit">डेटा सेव करें 🚀</button>
     </form>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand(); // ऐप को फुल स्क्रीन में खोलने के लिए
+        tg.expand(); 
 
-        function submitData() {
-            let name = document.getElementById("name").value;
-            let age = document.getElementById("age").value;
-            let gender = document.getElementById("gender").value;
-            let height = document.getElementById("height").value;
-            let weight = document.getElementById("weight").value;
-            let goal = document.getElementById("goal").value;
-
-            if(!name || !age || !gender || !height || !weight || !goal) {
-                tg.showAlert("कृपया सभी जानकारी सही-सही भरें!");
-                return;
-            }
-
-            let data = { 
-                name: name, 
-                age: age, 
-                gender: gender, 
-                height: height, 
-                weight: weight, 
-                goal: goal 
+        document.getElementById("profileForm").addEventListener("submit", function(e) {
+            e.preventDefault(); 
+            let data = {
+                name: document.getElementById("name").value,
+                age: document.getElementById("age").value,
+                gender: document.getElementById("gender").value,
+                height: document.getElementById("height").value,
+                weight: document.getElementById("weight").value,
+                goal: document.getElementById("goal").value,
+                medical: document.getElementById("medical").value // मेडिकल डेटा
             };
-            
-            // यह डेटा वापस पाइथन बॉट को भेज देगा
             tg.sendData(JSON.stringify(data));
-        }
+        });
     </script>
 </body>
 </html>
-
