@@ -44,27 +44,46 @@
             </select>
         </div>
         
-        <button type="submit">Save Data 🚀</button>
+        <button type="button" onclick="saveData()">Save Data 🚀</button>
     </form>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand(); 
+    function saveData() {
+        try {
+            let name = document.getElementById('name').value;
+            let age = document.getElementById('age').value;
+            let gender = document.getElementById('gender').value;
+            let height = document.getElementById('height').value;
+            let weight = document.getElementById('weight').value;
+            let goal = document.getElementById('goal').value;
+            let medical = document.getElementById('medical').value;
 
-        document.getElementById("profileForm").addEventListener("submit", function(e) {
-            e.preventDefault(); 
+            if (!name || !age || !height || !weight) {
+                alert("कृपया सभी जानकारी भरें!");
+                return;
+            }
+
             let data = {
-                name: document.getElementById("name").value,
-                age: document.getElementById("age").value,
-                gender: document.getElementById("gender").value,
-                height: document.getElementById("height").value,
-                weight: document.getElementById("weight").value,
-                goal: document.getElementById("goal").value,
-                medical: document.getElementById("medical").value
+                name: name,
+                age: age,
+                gender: gender,
+                height: height,
+                weight: weight,
+                goal: goal,
+                medical: medical
             };
+
+            let tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.ready();
+
+            alert("डेटा सेंड हो रहा है... 🚀");
             tg.sendData(JSON.stringify(data));
             tg.close();
-        });
-    </script>
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    }
+</script>
 </body>
 </html>
