@@ -51,12 +51,15 @@
     </form>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
+        // टेलीग्राम को स्क्रीन बड़ी करने का कमांड
+        window.Telegram.WebApp.expand();
+        window.Telegram.WebApp.ready();
 
         function saveData() {
             try {
+                // 'tg' को बटन क्लिक होने पर ही लोड करेंगे ताकि कोई एरर न आए
+                let tg = window.Telegram.WebApp;
+
                 let name = document.getElementById('name').value;
                 let age = document.getElementById('age').value;
                 let gender = document.getElementById('gender').value;
