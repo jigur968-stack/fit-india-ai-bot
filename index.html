@@ -11,14 +11,15 @@
         .form-group { margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; background-color: #2481cc; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button { width: 100%; padding: 14px; background-color: #2481cc; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
     <h2>Create Profile 🏋️‍♂️</h2>
     <form id="profileForm">
-        <div class="form-group"><label>Name</label><input type="text" id="name" placeholder="Name" required></div>
-        <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="Age" required></div>
+        <div class="form-group"><label>Name</label><input type="text" id="name" placeholder="अपना नाम लिखें" required></div>
+        <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="अपनी उम्र लिखें" required></div>
+        
         <div class="form-group">
             <label>Gender</label>
             <select id="gender" required>
@@ -28,8 +29,10 @@
                 <option value="Other">Other</option>
             </select>
         </div>
-        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="e.g. 170" required></div>
-        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" placeholder="e.g. 70" required></div>
+        
+        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="जैसे 170" required></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" placeholder="जैसे 70" required></div>
+        
         <div class="form-group">
             <label>Goal</label>
             <select id="goal" required>
@@ -39,70 +42,43 @@
                 <option value="Stay Fit">Stay Fit</option>
             </select>
         </div>
+        
         <div class="form-group">
-            <label>Medical Condition (Thyroid, BP, Diabetes, etc.)</label>
+            <label>Medical Condition (Thyroid, BP, Diabetes?)</label>
             <select id="medical" required>
                 <option value="">Select...</option>
-                <option value="Yes">Yes</option>
                 <option value="No">No</option>
+                <option value="Yes">Yes</option>
             </select>
         </div>
-        <button type="button" onclick="saveData()">Save Data 🚀</button>
+        
+        <button type="button" onclick="sendDataToBot()">Save Data 🚀</button>
     </form>
 
     <script>
-        // पेज लोड होने पर ही टेलीग्राम रेडी होगा (कोई एरर नहीं आएगी)
-        window.onload = function() {
-            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                window.Telegram.WebApp.expand();
-                window.Telegram.WebApp.ready();
+        // टेलीग्राम वेब ऐप को इनिशियलाइज़ करना
+        let tg = window.Telegram.WebApp;
+        tg.expand(); // फॉर्म को पूरी स्क्रीन पर खोलने के लिए
+
+        function sendDataToBot() {
+            let data = {
+                name: document.getElementById('name').value,
+                age: document.getElementById('age').value,
+                gender: document.getElementById('gender').value,
+                height: document.getElementById('height').value,
+                weight: document.getElementById('weight').value,
+                goal: document.getElementById('goal').value,
+                medical: document.getElementById('medical').value
+            };
+
+            // चेक करना कि कोई फील्ड खाली तो नहीं छूट गई
+            if (!data.name || !data.age || !data.gender || !data.height || !data.weight || !data.goal || !data.medical) {
+                alert("कृपया सभी जानकारी भरें!");
+                return;
             }
-        };
 
-        function saveData() {
-            try {
-                // चेक करें कि क्या टेलीग्राम सही से लोड हुआ है
-                if (typeof window.Telegram === 'undefined') {
-                    alert("लोडिंग हो रही है... कृपया 2 सेकंड रुककर दोबारा 'Save Data' दबाएं।");
-                    return;
-                }
-
-                let tg = window.Telegram.WebApp;
-
-                let name = document.getElementById('name').value;
-                let age = document.getElementById('age').value;
-                let gender = document.getElementById('gender').value;
-                let height = document.getElementById('height').value;
-                let weight = document.getElementById('weight').value;
-                let goal = document.getElementById('goal').value;
-                let medical = document.getElementById('medical').value;
-
-                if (!name || !age || !height || !weight || !gender || !goal || !medical) {
-                    alert("कृपया सभी जानकारी भरें!");
-                    return;
-                }
-
-                let data = {
-                    name: name,
-                    age: age,
-                    gender: gender,
-                    height: height,
-                    weight: weight,
-                    goal: goal,
-                    medical: medical
-                };
-
-                // डेटा बॉट को सेंड करें
-                tg.sendData(JSON.stringify(data));
-                
-                // तुरंत बंद होने से पहले थोड़ा (milliseconds) इंतज़ार करें ताकि डेटा पक्का चला जाए
-                setTimeout(function() {
-                    tg.close();
-                }, 150);
-
-            } catch (err) {
-                alert("Final Error: " + err.message);
-            }
+            // डेटा बॉट को भेजना
+            tg.sendData(JSON.stringify(data));
         }
     </script>
 </body>
