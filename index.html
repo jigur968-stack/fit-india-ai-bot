@@ -51,13 +51,22 @@
     </form>
 
     <script>
-        // टेलीग्राम को स्क्रीन बड़ी करने का कमांड
-        window.Telegram.WebApp.expand();
-        window.Telegram.WebApp.ready();
+        // पेज लोड होने पर ही टेलीग्राम रेडी होगा (कोई एरर नहीं आएगी)
+        window.onload = function() {
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                window.Telegram.WebApp.expand();
+                window.Telegram.WebApp.ready();
+            }
+        };
 
         function saveData() {
             try {
-                // 'tg' को बटन क्लिक होने पर ही लोड करेंगे ताकि कोई एरर न आए
+                // चेक करें कि क्या टेलीग्राम सही से लोड हुआ है
+                if (typeof window.Telegram === 'undefined') {
+                    alert("लोडिंग हो रही है... कृपया 2 सेकंड रुककर दोबारा 'Save Data' दबाएं।");
+                    return;
+                }
+
                 let tg = window.Telegram.WebApp;
 
                 let name = document.getElementById('name').value;
@@ -83,10 +92,16 @@
                     medical: medical
                 };
 
+                // डेटा बॉट को सेंड करें
                 tg.sendData(JSON.stringify(data));
-                tg.close();
+                
+                // तुरंत बंद होने से पहले थोड़ा (milliseconds) इंतज़ार करें ताकि डेटा पक्का चला जाए
+                setTimeout(function() {
+                    tg.close();
+                }, 150);
+
             } catch (err) {
-                alert("Error: " + err.message);
+                alert("Final Error: " + err.message);
             }
         }
     </script>
