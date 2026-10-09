@@ -10,21 +10,21 @@
         h2 { text-align: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 14px; background-color: #2481cc; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; background-color: #2481cc; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
     <h2>Create Profile 🏋️‍♂️</h2>
-    
     <form id="profileForm">
         <div class="form-group"><label>Name</label><input type="text" id="name" placeholder="Name" required></div>
         <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="Age" required></div>
         <div class="form-group">
             <label>Gender</label>
             <select id="gender" required>
-                <option value="">Select...</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
+                <option value="">Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
             </select>
         </div>
         <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="e.g. 170" required></div>
@@ -32,7 +32,9 @@
         <div class="form-group">
             <label>Goal</label>
             <select id="goal" required>
-                <option value="">Select...</option><option value="Weight Loss">Weight Loss</option><option value="Muscle Gain">Muscle Gain</option><option value="Stay Fit">Stay Fit</option>
+                <option value="">Select...</option>
+                <option value="Weight Loss">Weight Loss</option>
+                <option value="Muscle Gain">Muscle Gain</option>
             </select>
         </div>
         <div class="form-group">
@@ -43,47 +45,45 @@
                 <option value="No">No</option>
             </select>
         </div>
-        
         <button type="button" onclick="saveData()">Save Data 🚀</button>
     </form>
 
     <script>
-    function saveData() {
-        try {
-            let name = document.getElementById('name').value;
-            let age = document.getElementById('age').value;
-            let gender = document.getElementById('gender').value;
-            let height = document.getElementById('height').value;
-            let weight = document.getElementById('weight').value;
-            let goal = document.getElementById('goal').value;
-            let medical = document.getElementById('medical').value;
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
 
-            if (!name || !age || !height || !weight) {
-                alert("कृपया सभी जानकारी भरें!");
-                return;
+        function saveData() {
+            try {
+                let name = document.getElementById('name').value;
+                let age = document.getElementById('age').value;
+                let gender = document.getElementById('gender').value;
+                let height = document.getElementById('height').value;
+                let weight = document.getElementById('weight').value;
+                let goal = document.getElementById('goal').value;
+                let medical = document.getElementById('medical').value;
+
+                if (!name || !age || !height || !weight || !gender || !goal || !medical) {
+                    alert("कृपया सभी जानकारी भरें!");
+                    return;
+                }
+
+                let data = {
+                    name: name,
+                    age: age,
+                    gender: gender,
+                    height: height,
+                    weight: weight,
+                    goal: goal,
+                    medical: medical
+                };
+
+                tg.sendData(JSON.stringify(data));
+                tg.close();
+            } catch (err) {
+                alert("Error: " + err.message);
             }
-
-            let data = {
-                name: name,
-                age: age,
-                gender: gender,
-                height: height,
-                weight: weight,
-                goal: goal,
-                medical: medical
-            };
-
-            let tg = window.Telegram.WebApp;
-            tg.expand();
-            tg.ready();
-
-            alert("डेटा सेंड हो रहा है... 🚀");
-            tg.sendData(JSON.stringify(data));
-            tg.close();
-        } catch (err) {
-            alert("Error: " + err.message);
         }
-    }
-</script>
+    </script>
 </body>
 </html>
