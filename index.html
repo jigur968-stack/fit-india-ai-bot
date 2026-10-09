@@ -6,7 +6,7 @@
     <title>Fit India AI - Profile</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: var(--tg-theme-bg-color, #f4f4f4); color: var(--tg-theme-text-color, #000); }
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; color: #000; }
         h2 { text-align: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; }
@@ -17,9 +17,8 @@
 <body>
     <h2>Create Profile 🏋️‍♂️</h2>
     <form id="profileForm">
-        <div class="form-group"><label>Name</label><input type="text" id="name" placeholder="अपना नाम लिखें" required></div>
-        <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="अपनी उम्र लिखें" required></div>
-        
+        <div class="form-group"><label>Name</label><input type="text" id="name" required></div>
+        <div class="form-group"><label>Age</label><input type="number" id="age" required></div>
         <div class="form-group">
             <label>Gender</label>
             <select id="gender" required>
@@ -29,10 +28,8 @@
                 <option value="Other">Other</option>
             </select>
         </div>
-        
-        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="जैसे 170" required></div>
-        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" placeholder="जैसे 70" required></div>
-        
+        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" required></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" required></div>
         <div class="form-group">
             <label>Goal</label>
             <select id="goal" required>
@@ -42,25 +39,26 @@
                 <option value="Stay Fit">Stay Fit</option>
             </select>
         </div>
-        
         <div class="form-group">
-            <label>Medical Condition (Thyroid, BP, Diabetes?)</label>
+            <label>Medical Condition</label>
             <select id="medical" required>
                 <option value="">Select...</option>
                 <option value="No">No</option>
                 <option value="Yes">Yes</option>
             </select>
         </div>
-        
         <button type="button" onclick="sendDataToBot()">Save Data 🚀</button>
     </form>
 
     <script>
-        // टेलीग्राम वेब ऐप को इनिशियलाइज़ करना
-        let tg = window.Telegram.WebApp;
-        tg.expand(); // फॉर्म को पूरी स्क्रीन पर खोलने के लिए
-
         function sendDataToBot() {
+            let tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+
+            if (!tg) {
+                alert("Telegram WebApp script लोड नहीं हुआ। कृपया टेलीग्राम ऐप को रिफ्रेश करें।");
+                return;
+            }
+
             let data = {
                 name: document.getElementById('name').value,
                 age: document.getElementById('age').value,
@@ -71,13 +69,12 @@
                 medical: document.getElementById('medical').value
             };
 
-            // चेक करना कि कोई फील्ड खाली तो नहीं छूट गई
             if (!data.name || !data.age || !data.gender || !data.height || !data.weight || !data.goal || !data.medical) {
                 alert("कृपया सभी जानकारी भरें!");
                 return;
             }
 
-            // डेटा बॉट को भेजना
+            tg.ready();
             tg.sendData(JSON.stringify(data));
         }
     </script>
