@@ -6,7 +6,7 @@
     <title>Fit India AI - Profile</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; color: #000; }
+        body { font-family: sans-serif; padding: 20px; background-color: var(--tg-theme-bg-color, #f4f4f4); color: var(--tg-theme-text-color, #000); }
         h2 { text-align: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; }
@@ -17,8 +17,8 @@
 <body>
     <h2>Create Profile 🏋️‍♂️</h2>
     <form id="profileForm">
-        <div class="form-group"><label>Name</label><input type="text" id="name" required></div>
-        <div class="form-group"><label>Age</label><input type="number" id="age" required></div>
+        <div class="form-group"><label>Name</label><input type="text" id="name" placeholder="अपना नाम लिखें" required></div>
+        <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="अपनी उम्र लिखें" required></div>
         <div class="form-group">
             <label>Gender</label>
             <select id="gender" required>
@@ -28,8 +28,8 @@
                 <option value="Other">Other</option>
             </select>
         </div>
-        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" required></div>
-        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" required></div>
+        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="जैसे 170" required></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" placeholder="जैसे 70" required></div>
         <div class="form-group">
             <label>Goal</label>
             <select id="goal" required>
@@ -40,7 +40,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Medical Condition</label>
+            <label>Medical Condition (Thyroid, BP, Diabetes?)</label>
             <select id="medical" required>
                 <option value="">Select...</option>
                 <option value="No">No</option>
@@ -51,31 +51,48 @@
     </form>
 
     <script>
-        function sendDataToBot() {
-            let tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-
-            if (!tg) {
-                alert("Telegram WebApp script लोड नहीं हुआ। कृपया टेलीग्राम ऐप को रिफ्रेश करें।");
-                return;
+        // डायरेक्ट टेलीग्राम नेटिव ऐप से स्क्रीन बड़ी करने की कोशिश
+        try {
+            if (typeof window.TelegramWebviewProxy !== 'undefined') {
+                window.TelegramWebviewProxy.postEvent('web_app_expand', JSON.stringify({}));
+            } else if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.expand();
             }
+        } catch(e) {}
 
-            let data = {
-                name: document.getElementById('name').value,
-                age: document.getElementById('age').value,
-                gender: document.getElementById('gender').value,
-                height: document.getElementById('height').value,
-                weight: document.getElementById('weight').value,
-                goal: document.getElementById('goal').value,
-                medical: document.getElementById('medical').value
-            };
+        function sendDataToBot() {
+            let name = document.getElementById('name').value;
+            let age = document.getElementById('age').value;
+            let gender = document.getElementById('gender').value;
+            let height = document.getElementById('height').value;
+            let weight = document.getElementById('weight').value;
+            let goal = document.getElementById('goal').value;
+            let medical = document.getElementById('medical').value;
 
-            if (!data.name || !data.age || !data.gender || !data.height || !data.weight || !data.goal || !data.medical) {
+            if (!name || !age || !gender || !height || !weight || !goal || !medical) {
                 alert("कृपया सभी जानकारी भरें!");
                 return;
             }
 
-            tg.ready();
-            tg.sendData(JSON.stringify(data));
+            let dataObj = { name, age, gender, height, weight, goal, medical };
+            let dataString = JSON.stringify(dataObj);
+
+            try {
+                // तरीका 1: अगर टेलीग्राम की फाइल लोड हो गई
+                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.sendData === 'function') {
+                    window.Telegram.WebApp.sendData(dataString);
+                } 
+                // तरीका 2 (Bypass): अगर इंटरनेट प्रोवाइडर (Vi/Jio) ने फाइल ब्लॉक कर दी (यह काम करेगा!)
+                else if (typeof window.TelegramWebviewProxy !== 'undefined') {
+                    window.TelegramWebviewProxy.postEvent('web_app_data_send', JSON.stringify({data: dataString}));
+                    setTimeout(function() { window.TelegramWebviewProxy.postEvent('web_app_close', JSON.stringify({})); }, 150);
+                } 
+                else {
+                    alert("डेटा नहीं जा पा रहा है। कृपया इंटरनेट चेक करें।");
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
         }
     </script>
 </body>
