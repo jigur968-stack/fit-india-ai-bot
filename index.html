@@ -39,6 +39,19 @@
                 <option value="Stay Fit">Stay Fit</option>
             </select>
         </div>
+        
+        <!-- नया Diet Preference सेक्शन -->
+        <div class="form-group">
+            <label>Diet Preference</label>
+            <select id="diet" required>
+                <option value="">Select...</option>
+                <option value="Vegetarian">Vegetarian (शाकाहारी)</option>
+                <option value="Non-Vegetarian">Non-Vegetarian (मांसाहारी)</option>
+                <option value="Eggetarian">Eggetarian (अंडे खाते हैं)</option>
+                <option value="Vegan">Vegan (वीगन)</option>
+            </select>
+        </div>
+
         <div class="form-group">
             <label>Medical Condition (Thyroid, BP, Diabetes, etc.)</label>
             <select id="medical" required>
@@ -67,14 +80,15 @@
             let height = document.getElementById('height').value;
             let weight = document.getElementById('weight').value;
             let goal = document.getElementById('goal').value;
+            let diet = document.getElementById('diet').value; // नया डेटा
             let medical = document.getElementById('medical').value;
 
-            if (!name || !age || !gender || !height || !weight || !goal || !medical) {
+            if (!name || !age || !gender || !height || !weight || !goal || !diet || !medical) {
                 alert("कृपया सभी जानकारी भरें!");
                 return;
             }
 
-            let dataObj = { name, age, gender, height, weight, goal, medical };
+            let dataObj = { name, age, gender, height, weight, goal, diet, medical };
             let dataString = JSON.stringify(dataObj);
 
             try {
@@ -82,7 +96,7 @@
                 if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.sendData === 'function') {
                     window.Telegram.WebApp.sendData(dataString);
                 } 
-                // तरीका 2 (Bypass): अगर इंटरनेट प्रोवाइडर (Vi/Jio) ने फाइल ब्लॉक कर दी (यह काम करेगा!)
+                // तरीका 2 (Bypass): अगर इंटरनेट प्रोवाइडर (Vi/Jio) ने फाइल ब्लॉक कर दी
                 else if (typeof window.TelegramWebviewProxy !== 'undefined') {
                     window.TelegramWebviewProxy.postEvent('web_app_data_send', JSON.stringify({data: dataString}));
                     setTimeout(function() { window.TelegramWebviewProxy.postEvent('web_app_close', JSON.stringify({})); }, 150);
