@@ -252,7 +252,7 @@ def receive_web_app_data(message):
         bot.send_message(message.chat.id, "डेटा सेव करने में कुछ दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         print("Error:", e)
 
-# फोटो हैंडलर
+# फोटो हैंडलर (सुधरा हुआ कंडीशनल नोट लॉजिक)
 @bot.message_handler(content_types=['photo'])
 def handle_photo_message(message):
     user_id = message.chat.id
@@ -266,7 +266,14 @@ def handle_photo_message(message):
         name, goal, diet = user
         caption = message.caption if message.caption else ""
         bot.send_chat_action(message.chat.id, 'typing')
-        bot.send_message(message.chat.id, f"📸 {name}, आपकी फूड फोटो मिल गई है! AI इसे और आपके नोट ('{caption}') को स्कैन करके सही कैलोरी का हिसाब लगा रहा है... ⏳")
+        
+        # अगर यूजर ने कैप्शन लिखा है तभी नोट दिखाएगा, वरना नॉर्मल मैसेज भेजेगा
+        if caption:
+            loading_msg = f"📸 {name}, आपकी फूड फोटो और नोट ('{caption}') मिल गए हैं! AI इन्हें स्कैन करके सही कैलोरी का हिसाब लगा रहा है... ⏳"
+        else:
+            loading_msg = f"📸 {name}, आपकी फूड फोटो मिल गई है! AI इसे स्कैन करके सही कैलोरी का हिसाब लगा रहा है... ⏳"
+            
+        bot.send_message(message.chat.id, loading_msg)
         
         try:
             file_info = bot.get_file(message.photo[-1].file_id)
@@ -315,3 +322,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
             time.sleep(5)
+
