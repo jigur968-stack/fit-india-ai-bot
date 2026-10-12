@@ -60,48 +60,31 @@ def send_long_message(chat_id, text):
 # AI से डाइट प्लान बनवाने का फ़ंक्शन
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
-    आप Fit India AI के एक एक्सपर्ट डाइटिशियन और न्यूट्रिशनिस्ट हैं।
-    यूज़र की प्रोफाइल:
-    - नाम: {name}
-    - उम्र: {age} वर्ष
-    - लिंग: {gender}
-    - ऊंचाई: {height} cm
-    - वजन: {weight} kg
-    - लक्ष्य (Goal): {goal}
-    - भोजन प्राथमिकता (Diet Preference): {diet}
+    आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
+    प्रोफाइल: {name}, {age}वर्ष, {gender}, {height}cm, {weight}kg, Goal: {goal}, Diet: {diet}.
 
-    कृपया यूज़र के लिए एक सुंदर, साफ और आसान हिंदी (Hinglish mix) में डाइट प्लान बनाएं।
-    विशेष निर्देश: यूज़र की डाइट प्राथमिकता '{diet}' है।
-
-    इसमें शामिल करें:
-    1. 🎯 रोज़ाना की अनुमानित कैलोरी और प्रोटीन की आवश्यकता।
-    2. 🥗 1-दिन का आसान भारतीय डाइट चार्ट (सुबह का नाश्ता, दोपहर का खाना, शाम का स्नैक, रात का खाना)।
-    3. ✅ क्या खाएं और ❌ किससे परहेज करें।
-    4. 💡 2-3 महत्वपूर्ण फिटनेस टिप्स।
-
-    उत्तर को साफ-सुथरा और पॉइंट-बाय-पॉइंट रखें।
+    संक्षिप्त, साफ और तेज हिंदी (Hinglish mix) में उत्तर दें:
+    1. 🎯 दैनिक कैलोरी और प्रोटीन आवश्यकता।
+    2. 🥗 1-दिन का आसान भारतीय डाइट चार्ट (नाश्ता, दोपहर, शाम, रात)।
+    3. ✅ क्या खाएं और ❌ परहेज।
+    4. 💡 2 मुख्य टिप्स।
     """
     try:
         response = ai_model.generate_content(prompt)
         return response.text
     except Exception as e:
         print("Gemini AI Error:", e)
-        return f"नमस्ते {name}! आपका डेटा सेव हो गया है। AI डाइट चार्ट जनरेट करने में थोड़ा समय लग रहा है।"
+        return f"नमस्ते {name}! आपकी प्रोफाइल सेव हो गई है।"
 
 # AI से वर्कआउट प्लान बनवाने का फ़ंक्शन
 def generate_ai_workout_plan(name, goal, gender):
     prompt = f"""
-    आप Fit India AI के एक एक्सपर्ट फिटनेस कोच और ट्रेनर हैं।
-    यूज़र की प्रोफाइल:
-    - नाम: {name}
-    - लिंग: {gender}
-    - लक्ष्य (Goal): {goal}
+    आप Fit India AI के एक्सपर्ट फिटनेस कोच हैं।
+    प्रोफाइल: {name}, {gender}, Goal: {goal}.
 
-    कृपया यूज़र के लिए 5-दिन का एक शानदार, साफ और आसान हिंदी (Hinglish mix) में होम/जिम वर्कआउट रूटीन बनाएं।
-    विशेष निर्देश:
-    1. हर दिन के वर्कआउट में मुख्य एक्सरसाइज के नाम दें।
-    2. हर प्रमुख एक्सरसाइज के साथ उसका सही फॉर्म सीखने के लिए एक Markdown YouTube सर्च लिंक अवश्य जोड़ें।
-    3. वार्म-अप और कूल-डाउन के टिप्स दें।
+    संक्षिप्त हिंदी (Hinglish mix) में 5-दिन का होम/जिम वर्कआउट रूटीन बनाएं:
+    - मुख्य एक्सरसाइज के नाम और Markdown YouTube सर्च लिंक दें।
+    - वार्म-अप / कूल-डाउन टिप।
     """
     try:
         response = ai_model.generate_content(prompt)
@@ -113,23 +96,16 @@ def generate_ai_workout_plan(name, goal, gender):
 # AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     image = Image.open(BytesIO(image_bytes))
-    user_note = f"यूज़र का नोट/कैप्शन: '{caption}'" if caption else "यूज़र ने कोई कैप्शन नहीं लिखा है।"
+    user_note = f"नोट: '{caption}'" if caption else ""
     
     prompt = f"""
-    आप Fit India AI के एक एक्सपर्ट न्यूट्रिशनिस्ट और डाइटिशियन हैं।
-    यूज़र की प्रोफाइल:
-    - नाम: {name}
-    - लक्ष्य (Goal): {goal}
-    - भोजन प्राथमिकता (Diet Preference): {diet}
-    - {user_note}
+    आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
+    प्रोफाइल: {name}, Goal: {goal}, Diet: {diet}. {user_note}
 
-    महत्वपूर्ण निर्देश:
-    1. सबसे पहले फोटो को अपनी आँखों (Vision) से खुद ध्यान से देखकर पहचानें कि उसमें कौन सा खाद्य पदार्थ (Food item) है। कैप्शन को कभी भी फूड के नाम की तरह कॉपी न करें।
-    2. यूज़र के कैप्शन का उपयोग केवल मात्रा (Quantity) या संख्या समझने के लिए करें।
-    3. फोटो में दिख रहे भोजन के अनुसार अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
-    4. क्या यह यूज़र के लक्ष्य ({goal}) और डाइट ({diet}) के हिसाब से सही है या नहीं, और सुधार के लिए सुझाव दें।
-    
-    उत्तर को साफ-सुथरा और पॉइंट-बाय-पॉइंट हिंदी (Hinglish mix) में रखें।
+    निर्देश:
+    1. फोटो में फूड आइटम को स्वयं पहचानें।
+    2. अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
+    3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
     try:
         response = ai_model.generate_content([prompt, image])
@@ -141,28 +117,20 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
 # AI टेक्स्ट चैट Q&A का फंक्शन
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
-    आप Fit India AI के एक स्मार्ट, दोस्ताना और एक्सपर्ट फिटनेस कोच और न्यूट्रिशनिस्ट हैं।
-    यूज़र की प्रोफाइल:
-    - नाम: {name}
-    - उम्र: {age} वर्ष
-    - लिंग: {gender}
-    - ऊंचाई: {height} cm
-    - वजन: {weight} kg
-    - लक्ष्य (Goal): {goal}
-    - भोजन प्राथमिकता (Diet Preference): {diet}
+    आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
+    प्रोफाइल: {name}, {age}वर्ष, {gender}, Goal: {goal}, Diet: {diet}.
+    सवाल: "{user_query}"
 
-    यूज़र का सवाल/संदेश: "{user_query}"
-
-    कृपया यूज़र के इस सवाल का एक सटीक, मददगार और प्रेरणादायक जवाब हिंदी (Hinglish mix) में दें।
+    संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
     try:
         response = ai_model.generate_content(prompt)
         return response.text
     except Exception as e:
         print("Gemini Text AI Error:", e)
-        return f"नमस्ते {name}! आपके सवाल का जवाब देने में थोड़ी तकनीकी समस्या आ रही है, कृपया दोबारा प्रयास करें।"
+        return f"नमस्ते {name}! आपके सवाल का जवाब देने में तकनीकी समस्या आ रही है।"
 
-# स्टार्ट कमांड (Supabase से डेटा फेच करने का लॉजिक)
+# स्टार्ट कमांड (स्मार्ट वेलकम + डायनामिक बटन लॉजिक)
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.chat.id
@@ -181,14 +149,19 @@ def start_command(message):
         print("Supabase fetch error in start:", e)
     
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    
+    # अगर नया यूजर है - सिर्फ प्रोफाइल बनाने का बटन
     if not user_name:
         markup.add(KeyboardButton("Create Profile 📝", web_app=WebAppInfo(url=WEBAPP_URL)))
-    markup.add(KeyboardButton("Get Workout Routine 🏋️‍♂️"))
+        text_message = "Fit India AI में आपका स्वागत है! 🇮🇳\n\nकृपया अपनी फिटनेस प्रोफाइल बनाने के लिए नीचे दिए गए 'Create Profile 📝' बटन पर क्लिक करें:"
+    # अगर पुराना यूजर है - Create Profile का बटन गायब, सीधे ऑप्शन मिलेंगे
+    else:
+        markup.add(KeyboardButton("Get Workout Routine 🏋️‍♂️"))
+        text_message = f"नमस्ते {user_name} जी! Fit India AI में आपका स्वागत है। 🇮🇳\n\nआप मुझसे डाइट, वर्कआउट या कैलोरी से जुड़ा कोई भी सवाल पूछ सकते हैं या नीचे दिए बटन का उपयोग कर सकते हैं:"
     
-    greeting = f"नमस्ते {user_name} जी!" if user_name else "Fit India AI में आपका स्वागत है! 🇮🇳"
     bot.send_message(
         message.chat.id, 
-        f"{greeting}\nनीचे दिए गए बटन्स का उपयोग करें:", 
+        text_message, 
         reply_markup=markup
     )
 
@@ -214,7 +187,7 @@ def workout_command(message):
         gender = user_data.get('gender')
         
         bot.send_chat_action(message.chat.id, 'typing')
-        bot.send_message(message.chat.id, f"🤖 {name}, आपके गोल ({goal}) के अनुसार 5-दिन का कस्टमाइज्ड वर्कआउट प्लान तैयार किया जा रहा है... ⏳", reply_markup=ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, f"🤖 {name}, आपके गोल ({goal}) के अनुसार 5-दिन का वर्कआउट प्लान तैयार किया जा रहा है... ⏳", reply_markup=ReplyKeyboardRemove())
         workout_plan = generate_ai_workout_plan(name, goal, gender)
         send_long_message(message.chat.id, workout_plan)
     else:
@@ -243,7 +216,6 @@ def receive_web_app_data(message):
             "medical": data['medical']
         }
         
-        # Upsert header to handle existing users
         headers = SUPABASE_HEADERS.copy()
         headers["Prefer"] = "resolution=merge-duplicates"
         
@@ -251,13 +223,13 @@ def receive_web_app_data(message):
         
         if res.status_code in [200, 201, 204]:
             if data['medical'] == 'Yes':
-                response_text = f"नमस्ते {data['name']}! आपका डेटा क्लाउड पर सुरक्षित सेव हो गया है। ⚠️\n\nचूँकि आपने मेडिकल कंडीशन 'Yes' चुनी है, इसलिए कोई भी सख्त डाइट या वर्कआउट शुरू करने से पहले कृपया अपने डॉक्टर से सलाह ज़रूर लें।"
+                response_text = f"नमस्ते {data['name']}! आपकी प्रोफाइल सेव हो गई है। ⚠️\n\nचूँकि आपने मेडिकल कंडीशन 'Yes' चुनी है, इसलिए कोई भी सख्त डाइट या वर्कआउट शुरू करने से पहले डॉक्टर से सलाह ज़रूर लें।"
                 bot.send_message(message.chat.id, response_text, reply_markup=ReplyKeyboardRemove())
             else:
                 bot.send_chat_action(message.chat.id, 'typing')
                 bot.send_message(
                     message.chat.id, 
-                    f"नमस्ते {data['name']}! आपकी प्रोफाइल क्लाउड पर सेव हो गई है। 🎉\n\n🤖 Fit India AI आपके डेटा और '{data['diet']}' डाइट के अनुसार आपका AI डाइट चार्ट तैयार कर रहा है... ⏳", 
+                    f"नमस्ते {data['name']}! आपकी प्रोफाइल सुरक्षित सेव हो गई है। 🎉\n\n🤖 Fit India AI आपके लिए AI डाइट चार्ट तैयार कर रहा है... ⏳", 
                     reply_markup=ReplyKeyboardRemove()
                 )
                 
@@ -269,10 +241,10 @@ def receive_web_app_data(message):
                 send_long_message(message.chat.id, ai_diet_plan)
         else:
             print("Supabase Save Error:", res.text)
-            bot.send_message(message.chat.id, "डेटा सेव करने में कुछ दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, "डेटा सेव करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
-        bot.send_message(message.chat.id, "डेटा प्रोसेस करने में कुछ दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, "डेटा प्रोसेस करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         print("Error:", e)
 
 # फोटो हैंडलर
@@ -300,9 +272,9 @@ def handle_photo_message(message):
         bot.send_chat_action(message.chat.id, 'typing')
         
         if caption:
-            loading_msg = f"📸 {name}, आपकी फूड फोटो और नोट ('{caption}') मिल गए हैं! AI इन्हें स्कैन करके सही कैलोरी का हिसाब लगा रहा है... ⏳"
+            loading_msg = f"📸 {name}, फोटो और नोट ('{caption}') मिल गए हैं! AI कैलोरी स्कैन कर रहा है... ⏳"
         else:
-            loading_msg = f"📸 {name}, आपकी फूड फोटो मिल गई है! AI इसे स्कैन करके सही कैलोरी का हिसाब लगा रहा है... ⏳"
+            loading_msg = f"📸 {name}, फोटो मिल गई है! AI कैलोरी स्कैन कर रहा है... ⏳"
             
         bot.send_message(message.chat.id, loading_msg)
         
@@ -313,7 +285,7 @@ def handle_photo_message(message):
             send_long_message(message.chat.id, analysis_result)
         except Exception as e:
             print("Photo processing error:", e)
-            bot.send_message(message.chat.id, "⚠️ फोटो प्रोसेस करने में दिक्कत आई। कृपया दोबारा प्रयास करें।")
+            bot.send_message(message.chat.id, "⚠️ फोटो प्रोसेस करने में दिक्कत आई।")
     else:
         bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
