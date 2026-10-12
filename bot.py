@@ -114,14 +114,19 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
         print("Gemini Vision AI Error:", e)
         return "तस्वीर का विश्लेषण करने में कुछ दिक्कत आई। कृपया साफ फोटो दोबारा भेजें।"
 
-# AI टेक्स्ट चैट Q&A का फंक्शन
+# AI टेक्स्ट चैट Q&A का फंक्शन (डिजिटल दोस्त + माफी + शॉर्ट रिस्पॉन्स लॉजिक के साथ)
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
-    आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
+    आप Fit India AI के स्मार्ट, दोस्ताना और विनम्र फिटनेस कोच ('डिजिटल दोस्त') हैं।
     प्रोफाइल: {name}, {age}वर्ष, {gender}, Goal: {goal}, Diet: {diet}.
-    सवाल: "{user_query}"
+    यूज़र का सवाल/संदेश: "{user_query}"
 
-    संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
+    सख्त निर्देश (Strict Rules):
+    1. जवाब बहुत छोटा, पॉइंट-टू-पॉइंट और केवल 3-4 पंक्तियों (Lines) में दें। बड़े पैराग्राफ बिल्कुल न लिखें ताकि यूज़र को पढ़ने में बोरियत (कंटाला) न हो।
+    2. अगर यूज़र आपके पिछले जवाब की किसी गलती (जैसे कैलोरी, मात्रा या गिनती) को सुधार रहा है, तो बिना झिझक के तुरंत शालीनता से माफी मांगें (जैसे: "अरे! माफ कीजिएगा, मुझसे गिनती/पहचान में चूक हो गई..." या "क्षमा करें, आपकी बात बिल्कुल सही है...")।
+    3. इसके बाद यूज़र के सुधार के अनुसार सही जानकारी दें।
+    4. बातचीत को दिलचस्प और एंगेजिंग बनाने के लिए अंत में एक छोटा सा प्रासंगिक सवाल पूछें।
+    5. आसान हिंदी (Hinglish mix) और उपयुक्त Emojis का उपयोग करें।
     """
     try:
         response = ai_model.generate_content(prompt)
@@ -287,7 +292,7 @@ def handle_photo_message(message):
             print("Photo processing error:", e)
             bot.send_message(message.chat.id, "⚠️ फोटो प्रोसेस करने में दिक्कत आई।")
     else:
-        bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
+            bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
 # स्मार्ट टेक्स्ट Q&A चैट हैंडलर
 @bot.message_handler(func=lambda message: True)
@@ -331,8 +336,8 @@ if __name__ == '__main__':
     while True:
         try:
             print("Bot polling started...")
-            # यह लाइन पुराने अटके हुए सेशन को तुरंत हटा देगी
-            bot.remove_webhook(skip_pending=True)
+            # सुरक्षित वेबहुक रिमूव कॉल
+            bot.remove_webhook()
             bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
