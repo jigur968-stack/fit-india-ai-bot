@@ -56,7 +56,7 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# AI से डाइट प्लान बनवाने का फ़ंक्शन (Telegram Error Reporting के साथ)
+# AI से डाइट प्लान बनवाने का फ़ंक्शन (Pro Model as Primary, Flash as Backup)
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
     आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
@@ -71,7 +71,7 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     primary_err_msg = ""
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-pro',
             contents=prompt
         )
         return response.text
@@ -79,15 +79,15 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
         primary_err_msg = str(primary_err)
         try:
             response = client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-3.8-flash',
                 contents=prompt
             )
             return response.text
         except Exception as e:
             print("Gemini AI Error:", e)
-            return f"⚠️ Diet AI Error Details:\n1. Primary: {primary_err_msg}\n2. Backup: {e}"
+            return f"⚠️ Diet AI Error Details:\n1. Pro: {primary_err_msg}\n2. Flash: {e}"
 
-# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन (Telegram Error Reporting के साथ)
+# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     image = Image.open(BytesIO(image_bytes))
     user_note = f"नोट: '{caption}'" if caption else ""
@@ -104,7 +104,7 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     primary_err_msg = ""
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-pro',
             contents=[prompt, image]
         )
         return response.text
@@ -112,15 +112,15 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
         primary_err_msg = str(primary_err)
         try:
             response = client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-3.8-flash',
                 contents=[prompt, image]
             )
             return response.text
         except Exception as e:
             print("Gemini Vision AI Error:", e)
-            return f"⚠️ Vision AI Error Details:\n1. Primary: {primary_err_msg}\n2. Backup: {e}"
+            return f"⚠️ Vision AI Error Details:\n1. Pro: {primary_err_msg}\n2. Flash: {e}"
 
-# AI टेक्स्ट चैट Q&A का फंक्शन (Telegram Error Reporting के साथ)
+# AI टेक्स्ट चैट Q&A का फंक्शन (Pro + Flash Fallback)
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
     आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
@@ -132,26 +132,26 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
     primary_err_msg = ""
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-pro',
             contents=prompt
         )
         if response and response.text:
             return response.text
     except Exception as e:
         primary_err_msg = str(e)
-        print("Primary model issue, switching to backup:", e)
+        print("Primary Pro model issue, switching to backup:", e)
 
     try:
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-3.8-flash',
             contents=prompt
         )
         if response and response.text:
             return response.text
     except Exception as e:
         backup_err_msg = str(e)
-        print("Backup model issue:", e)
-        return f"⚠️ Gemini AI Error Details:\n1. Primary Error: {primary_err_msg}\n2. Backup Error: {backup_err_msg}"
+        print("Backup Flash model issue:", e)
+        return f"⚠️ Gemini AI Error Details:\n1. Pro Error: {primary_err_msg}\n2. Flash Error: {backup_err_msg}"
 
     return f"नमस्ते {name}! आपके सवाल का जवाब देने में तकनीकी समस्या आ रही है।"
 
