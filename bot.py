@@ -4,7 +4,7 @@ import json
 import os
 import time
 import requests
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 from io import BytesIO
 from flask import Flask
@@ -40,10 +40,8 @@ SUPABASE_HEADERS = {
     "Prefer": "return=representation"
 }
 
-# Google Gemini AI सेटअप (Dual-Model: Pro + Flash Fallback for 100% Reliability)
-genai.configure(api_key=GEMINI_API_KEY)
-primary_model = genai.GenerativeModel('gemini-1.5-pro')
-backup_model = genai.GenerativeModel('gemini-1.5-flash')
+# Google GenAI Modern Client Setup (Updated to new SDK)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -58,7 +56,7 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# AI से डाइट प्लान बनवाने का फ़ंक्शन (Dual-Model Fallback)
+# AI से डाइट प्लान बनवाने का फ़ंक्शन (Modern SDK with Fallback)
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
     आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
@@ -71,17 +69,23 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     4. 💡 2 मुख्य टिप्स।
     """
     try:
-        response = primary_model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
         return response.text
     except Exception:
         try:
-            response = backup_model.generate_content(prompt)
+            response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=prompt
+            )
             return response.text
         except Exception as e:
             print("Gemini AI Error:", e)
             return f"नमस्ते {name}! आपकी प्रोफाइल सेव हो गई है।"
 
-# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन (Dual-Model Fallback)
+# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन (Modern SDK with Fallback)
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     image = Image.open(BytesIO(image_bytes))
     user_note = f"नोट: '{caption}'" if caption else ""
@@ -96,17 +100,23 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
     try:
-        response = primary_model.generate_content([prompt, image])
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[prompt, image]
+        )
         return response.text
     except Exception:
         try:
-            response = backup_model.generate_content([prompt, image])
+            response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=[prompt, image]
+            )
             return response.text
         except Exception as e:
             print("Gemini Vision AI Error:", e)
             return "तस्वीर का विश्लेषण करने में कुछ दिक्कत आई। कृपया साफ फोटो दोबारा भेजें।"
 
-# AI टेक्स्ट चैट Q&A का फंक्शन (Dual-Model Fallback for Superfast Replies)
+# AI टेक्स्ट चैट Q&A का फंक्शन (Modern SDK with Superfast Fallback)
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
     आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
@@ -115,17 +125,21 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
 
     संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
-    # 1. प्राथमिक मॉडल (Pro) प्रयास
     try:
-        response = primary_model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
         if response and response.text:
             return response.text
     except Exception as e:
         print("Primary model issue, switching to backup:", e)
 
-    # 2. बैकअप मॉडल (Flash) प्रयास
     try:
-        response = backup_model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt
+        )
         if response and response.text:
             return response.text
     except Exception as e:
@@ -151,13 +165,11 @@ def start_command(message):
     except Exception as e:
         print("Supabase fetch error in start:", e)
     
-    # अगर नया यूजर है - सिर्फ प्रोफाइल बनाने का वेब ऐप बटन
     if not user_data or not user_data.get('name'):
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(KeyboardButton("Create Profile 📝", web_app=WebAppInfo(url=WEBAPP_URL)))
         text_message = "Fit India AI में आपका स्वागत है! 🇮🇳\n\nकृपया अपनी फिटनेस प्रोफाइल बनाने के लिए नीचे दिए गए 'Create Profile 📝' बटन पर क्लिक करें:"
         bot.send_message(message.chat.id, text_message, reply_markup=markup)
-    # अगर पुराना यूजर है - कोई बटन नहीं, बल्कि उसकी गोल और डाइट के अनुसार उपयोग बताने वाला मैसेज
     else:
         name = user_data.get('name')
         goal = user_data.get('goal', 'Fitness')
@@ -218,7 +230,7 @@ def receive_web_app_data(message):
                 send_long_message(message.chat.id, ai_diet_plan)
         else:
             print("Supabase Save Error:", res.text)
-            bot.send_message(message.chat.id, "डेटा सेव करने में दिक्कत आई। कृपया दोबारा प्रयास करें.", reply_markup=ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, "डेटा सेव करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
         bot.send_message(message.chat.id, "डेटा प्रोसेस करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
