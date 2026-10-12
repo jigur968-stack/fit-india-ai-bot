@@ -1,9 +1,9 @@
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, WebAppInfo
 import json
-import sqlite3
 import os
 import time
+import requests
 import google.generativeai as genai
 from PIL import Image
 from io import BytesIO
@@ -15,20 +15,30 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Fit India AI Bot is running smoothly on Render! 🚀"
+    return "Fit India AI Bot is running smoothly with Supabase on Render! 🚀"
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 # --------------------------------------------------------
 
-# Environment Variables से Tokens उठाना (रेंडर डैशबोर्ड से आएंगे)
+# Environment Variables से Tokens और Supabase Credentials उठाना
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-if not BOT_TOKEN or not GEMINI_API_KEY:
-    print("Error: Tokens नहीं मिले! कृपया Render Environment Variables चेक करें।")
+if not BOT_TOKEN or not GEMINI_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
+    print("Error: आवश्यक टोकन या Supabase Credentials नहीं मिले! कृपया Render Environment Variables चेक करें।")
     exit()
+
+# Supabase REST API Headers
+SUPABASE_HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+}
 
 # Google Gemini AI सेटअप
 genai.configure(api_key=GEMINI_API_KEY)
@@ -38,23 +48,6 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 # GitHub URL (Version 16)
 WEBAPP_URL = "https://jigur968-stack.github.io/fit-india-ai-bot/index.html?v=16"
-
-# डेटाबेस सेटअप
-def setup_database():
-    conn = sqlite3.connect('fitindia.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            name TEXT, age INTEGER, gender TEXT,
-            height REAL, weight REAL, goal TEXT, 
-            diet TEXT, medical TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-setup_database()
 
 # लंबी चैट/मैसेज को टुकड़ों में भेजने का सेफ फंक्शन
 def send_long_message(chat_id, text):
@@ -169,22 +162,30 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
         print("Gemini Text AI Error:", e)
         return f"नमस्ते {name}! आपके सवाल का जवाब देने में थोड़ी तकनीकी समस्या आ रही है, कृपया दोबारा प्रयास करें।"
 
-# स्टार्ट कमांड (डाइनेमिक बटन लॉजिक के साथ)
+# स्टार्ट कमांड (Supabase से डेटा फेच करने का लॉजिक)
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.chat.id
-    conn = sqlite3.connect('fitindia.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT name FROM users WHERE user_id = ?', (user_id,))
-    user = cursor.fetchone()
-    conn.close()
+    user_name = None
+    
+    try:
+        response = requests.get(
+            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name",
+            headers=SUPABASE_HEADERS
+        )
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                user_name = data[0].get('name')
+    except Exception as e:
+        print("Supabase fetch error in start:", e)
     
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    if not user:
+    if not user_name:
         markup.add(KeyboardButton("Create Profile 📝", web_app=WebAppInfo(url=WEBAPP_URL)))
     markup.add(KeyboardButton("Get Workout Routine 🏋️‍♂️"))
     
-    greeting = f"नमस्ते {user[0]} जी!" if user else "Fit India AI में आपका स्वागत है! 🇮🇳"
+    greeting = f"नमस्ते {user_name} जी!" if user_name else "Fit India AI में आपका स्वागत है! 🇮🇳"
     bot.send_message(
         message.chat.id, 
         f"{greeting}\nनीचे दिए गए बटन्स का उपयोग करें:", 
@@ -195,14 +196,23 @@ def start_command(message):
 @bot.message_handler(commands=['workout'])
 def workout_command(message):
     user_id = message.chat.id
-    conn = sqlite3.connect('fitindia.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT name, goal, gender FROM users WHERE user_id = ?', (user_id,))
-    user = cursor.fetchone()
-    conn.close()
+    user_data = None
     
-    if user:
-        name, goal, gender = user
+    try:
+        response = requests.get(
+            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name,goal,gender",
+            headers=SUPABASE_HEADERS
+        )
+        if response.status_code == 200 and response.json():
+            user_data = response.json()[0]
+    except Exception as e:
+        print("Supabase fetch error in workout:", e)
+    
+    if user_data:
+        name = user_data.get('name')
+        goal = user_data.get('goal')
+        gender = user_data.get('gender')
+        
         bot.send_chat_action(message.chat.id, 'typing')
         bot.send_message(message.chat.id, f"🤖 {name}, आपके गोल ({goal}) के अनुसार 5-दिन का कस्टमाइज्ड वर्कआउट प्लान तैयार किया जा रहा है... ⏳", reply_markup=ReplyKeyboardRemove())
         workout_plan = generate_ai_workout_plan(name, goal, gender)
@@ -214,60 +224,81 @@ def workout_command(message):
 def workout_button_handler(message):
     workout_command(message)
 
-# वेब ऐप से डेटा रिसीव करना
+# वेब ऐप से डेटा रिसीव करके Supabase में सेव करना
 @bot.message_handler(content_types=['web_app_data'])
 def receive_web_app_data(message):
     try:
         data = json.loads(message.web_app_data.data)
         user_id = message.chat.id
         
-        conn = sqlite3.connect('fitindia.db')
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO users (user_id, name, age, gender, height, weight, goal, diet, medical)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, data['name'], data['age'], data['gender'], data['height'], data['weight'], data['goal'], data['diet'], data['medical']))
-        conn.commit()
-        conn.close()
-
-        if data['medical'] == 'Yes':
-            response_text = f"नमस्ते {data['name']}! आपका डेटा सेव हो गया है। ⚠️\n\nचूँकि आपने मेडिकल कंडीशन 'Yes' चुनी है, इसलिए कोई भी सख्त डाइट या वर्कआउट शुरू करने से पहले कृपया अपने डॉक्टर से सलाह ज़रूर लें।"
-            bot.send_message(message.chat.id, response_text, reply_markup=ReplyKeyboardRemove())
+        payload = {
+            "user_id": user_id,
+            "name": data['name'],
+            "age": data['age'],
+            "gender": data['gender'],
+            "height": data['height'],
+            "weight": data['weight'],
+            "goal": data['goal'],
+            "diet": data['diet'],
+            "medical": data['medical']
+        }
+        
+        # Upsert header to handle existing users
+        headers = SUPABASE_HEADERS.copy()
+        headers["Prefer"] = "resolution=merge-duplicates"
+        
+        res = requests.post(f"{SUPABASE_URL}/rest/v1/users", headers=headers, json=payload)
+        
+        if res.status_code in [200, 201, 204]:
+            if data['medical'] == 'Yes':
+                response_text = f"नमस्ते {data['name']}! आपका डेटा क्लाउड पर सुरक्षित सेव हो गया है। ⚠️\n\nचूँकि आपने मेडिकल कंडीशन 'Yes' चुनी है, इसलिए कोई भी सख्त डाइट या वर्कआउट शुरू करने से पहले कृपया अपने डॉक्टर से सलाह ज़रूर लें।"
+                bot.send_message(message.chat.id, response_text, reply_markup=ReplyKeyboardRemove())
+            else:
+                bot.send_chat_action(message.chat.id, 'typing')
+                bot.send_message(
+                    message.chat.id, 
+                    f"नमस्ते {data['name']}! आपकी प्रोफाइल क्लाउड पर सेव हो गई है। 🎉\n\n🤖 Fit India AI आपके डेटा और '{data['diet']}' डाइट के अनुसार आपका AI डाइट चार्ट तैयार कर रहा है... ⏳", 
+                    reply_markup=ReplyKeyboardRemove()
+                )
+                
+                ai_diet_plan = generate_ai_diet_plan(
+                    data['name'], data['age'], data['gender'], 
+                    data['height'], data['weight'], data['goal'], data['diet']
+                )
+                
+                send_long_message(message.chat.id, ai_diet_plan)
         else:
-            bot.send_chat_action(message.chat.id, 'typing')
-            bot.send_message(
-                message.chat.id, 
-                f"नमस्ते {data['name']}! आपकी प्रोफाइल सेव हो गई है। 🎉\n\n🤖 Fit India AI आपके डेटा और '{data['diet']}' डाइट के अनुसार आपका AI डाइट चार्ट तैयार कर रहा है... ⏳", 
-                reply_markup=ReplyKeyboardRemove()
-            )
-            
-            ai_diet_plan = generate_ai_diet_plan(
-                data['name'], data['age'], data['gender'], 
-                data['height'], data['weight'], data['goal'], data['diet']
-            )
-            
-            send_long_message(message.chat.id, ai_diet_plan)
+            print("Supabase Save Error:", res.text)
+            bot.send_message(message.chat.id, "डेटा सेव करने में कुछ दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
-        bot.send_message(message.chat.id, "डेटा सेव करने में कुछ दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, "डेटा प्रोसेस करने में कुछ दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         print("Error:", e)
 
-# फोटो हैंडलर (सुधरा हुआ कंडीशनल नोट लॉजिक)
+# फोटो हैंडलर
 @bot.message_handler(content_types=['photo'])
 def handle_photo_message(message):
     user_id = message.chat.id
-    conn = sqlite3.connect('fitindia.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT name, goal, diet FROM users WHERE user_id = ?', (user_id,))
-    user = cursor.fetchone()
-    conn.close()
+    user_data = None
     
-    if user:
-        name, goal, diet = user
+    try:
+        response = requests.get(
+            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name,goal,diet",
+            headers=SUPABASE_HEADERS
+        )
+        if response.status_code == 200 and response.json():
+            user_data = response.json()[0]
+    except Exception as e:
+        print("Supabase fetch error in photo:", e)
+        
+    if user_data:
+        name = user_data.get('name')
+        goal = user_data.get('goal')
+        diet = user_data.get('diet')
         caption = message.caption if message.caption else ""
+        
         bot.send_chat_action(message.chat.id, 'typing')
         
-        # अगर यूजर ने कैप्शन लिखा है तभी नोट दिखाएगा, वरना नॉर्मल मैसेज भेजेगा
         if caption:
             loading_msg = f"📸 {name}, आपकी फूड फोटो और नोट ('{caption}') मिल गए हैं! AI इन्हें स्कैन करके सही कैलोरी का हिसाब लगा रहा है... ⏳"
         else:
@@ -291,30 +322,40 @@ def handle_photo_message(message):
 def handle_all_text_messages(message):
     user_id = message.chat.id
     user_query = message.text
+    user_data = None
     
-    conn = sqlite3.connect('fitindia.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT name, age, gender, height, weight, goal, diet FROM users WHERE user_id = ?', (user_id,))
-    user = cursor.fetchone()
-    conn.close()
-    
-    if user:
-        name, age, gender, height, weight, goal, diet = user
+    try:
+        response = requests.get(
+            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name,age,gender,height,weight,goal,diet",
+            headers=SUPABASE_HEADERS
+        )
+        if response.status_code == 200 and response.json():
+            user_data = response.json()[0]
+    except Exception as e:
+        print("Supabase fetch error in text:", e)
+        
+    if user_data:
+        name = user_data.get('name')
+        age = user_data.get('age')
+        gender = user_data.get('gender')
+        height = user_data.get('height')
+        weight = user_data.get('weight')
+        goal = user_data.get('goal')
+        diet = user_data.get('diet')
+        
         bot.send_chat_action(message.chat.id, 'typing')
         reply_text = generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query)
         send_long_message(message.chat.id, reply_text)
     else:
         bot.send_message(message.chat.id, "⚠️ कृपया पहले 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
-# --- MAIN ENTRY POINT (रेंडर के लिए थ्रेडिंग और पोलिंग) ---
+# --- MAIN ENTRY POINT ---
 if __name__ == '__main__':
-    print("Starting Telegram Bot on Render...")
-    # बॉट को बैकग्राउंड थ्रेड में चलाना
+    print("Starting Telegram Bot on Render with Supabase Database...")
     bot_thread = threading.Thread(target=run_flask)
     bot_thread.daemon = True
     bot_thread.start()
 
-    # पोलिंग लूप
     while True:
         try:
             print("Bot polling started...")
@@ -322,4 +363,3 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
             time.sleep(5)
-
