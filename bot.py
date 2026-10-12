@@ -22,11 +22,11 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 # --------------------------------------------------------
 
-# Environment Variables से Tokens और Supabase Credentials उठाना
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Environment Variables से Tokens और Supabase Credentials उठाना (.strip() से फालतू स्पेसेस/न्यूटलाइन्स खत्म)
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 
 if not BOT_TOKEN or not GEMINI_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
     print("Error: आवश्यक टोकन या Supabase Credentials नहीं मिले! कृपया Render Environment Variables चेक करें।")
@@ -330,7 +330,7 @@ def handle_all_text_messages(message):
 if __name__ == '__main__':
     print("Starting Telegram Bot on Render with Supabase Database...")
     
-    # सीधे टेलीग्राम सर्वर से पेंडिंग अपडेट्स और वेबहुक साफ़ करना (409 Conflict का पक्का इलाज)
+    # पेंडिंग अपडेट्स साफ़ करना
     try:
         clear_url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
         requests.get(clear_url)
@@ -346,7 +346,7 @@ if __name__ == '__main__':
         try:
             print("Bot polling started...")
             bot.remove_webhook()
-            bot.polling(none_stop=True, timeout=60, long_polling_timeout=timeout if 'timeout' in locals() else 60)
+            bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
             time.sleep(5)
