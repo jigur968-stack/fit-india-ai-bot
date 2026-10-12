@@ -202,7 +202,7 @@ def workout_command(message):
 def workout_button_handler(message):
     workout_command(message)
 
-# वेब ऐप से डेटा रिसीव करके Supabase में सेव करना
+# वेब ऐप से डेटा रिसीव करके Supabase में सेव करना (एरर ट्रैकिंग के साथ)
 @bot.message_handler(content_types=['web_app_data'])
 def receive_web_app_data(message):
     try:
@@ -246,11 +246,13 @@ def receive_web_app_data(message):
                 send_long_message(message.chat.id, ai_diet_plan)
         else:
             print("Supabase Save Error:", res.text)
-            bot.send_message(message.chat.id, "डेटा सेव करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
+            # असली Supabase एरर अब सीधा टेलीग्राम पर दिखेगा
+            bot.send_message(message.chat.id, f"⚠️ Supabase Error: {res.text}", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
-        bot.send_message(message.chat.id, "डेटा प्रोसेस करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         print("Error:", e)
+        # असली Python एरर अब सीधा टेलीग्राम पर दिखेगा
+        bot.send_message(message.chat.id, f"⚠️ Python Error: {e}", reply_markup=ReplyKeyboardRemove())
 
 # फोटो हैंडलर
 @bot.message_handler(content_types=['photo'])
@@ -336,7 +338,6 @@ if __name__ == '__main__':
     while True:
         try:
             print("Bot polling started...")
-            # सुरक्षित वेबहुक रिमूव कॉल (बिना skip_pending के)
             bot.remove_webhook()
             bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
         except Exception as e:
