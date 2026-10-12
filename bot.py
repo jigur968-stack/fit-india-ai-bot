@@ -202,7 +202,7 @@ def workout_command(message):
 def workout_button_handler(message):
     workout_command(message)
 
-# वेब ऐप से डेटा रिसीव करके Supabase में सेव करना (एरर ट्रैकिंग के साथ)
+# वेब ऐप से डेटा रिसीव करके Supabase में सेव करना
 @bot.message_handler(content_types=['web_app_data'])
 def receive_web_app_data(message):
     try:
@@ -246,12 +246,10 @@ def receive_web_app_data(message):
                 send_long_message(message.chat.id, ai_diet_plan)
         else:
             print("Supabase Save Error:", res.text)
-            # असली Supabase एरर अब सीधा टेलीग्राम पर दिखेगा
             bot.send_message(message.chat.id, f"⚠️ Supabase Error: {res.text}", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
         print("Error:", e)
-        # असली Python एरर अब सीधा टेलीग्राम पर दिखेगा
         bot.send_message(message.chat.id, f"⚠️ Python Error: {e}", reply_markup=ReplyKeyboardRemove())
 
 # फोटो हैंडलर
@@ -331,6 +329,15 @@ def handle_all_text_messages(message):
 # --- MAIN ENTRY POINT ---
 if __name__ == '__main__':
     print("Starting Telegram Bot on Render with Supabase Database...")
+    
+    # सीधे टेलीग्राम सर्वर से पेंडिंग अपडेट्स और वेबहुक साफ़ करना (409 Conflict का पक्का इलाज)
+    try:
+        clear_url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
+        requests.get(clear_url)
+        print("Telegram webhook cleared and pending updates dropped successfully.")
+    except Exception as e:
+        print("Webhook clear API error:", e)
+
     bot_thread = threading.Thread(target=run_flask)
     bot_thread.daemon = True
     bot_thread.start()
@@ -339,7 +346,7 @@ if __name__ == '__main__':
         try:
             print("Bot polling started...")
             bot.remove_webhook()
-            bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
+            bot.polling(none_stop=True, timeout=60, long_polling_timeout=timeout if 'timeout' in locals() else 60)
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
             time.sleep(5)
