@@ -40,9 +40,9 @@ SUPABASE_HEADERS = {
     "Prefer": "return=representation"
 }
 
-# Google Gemini AI सेटअप
+# Google Gemini AI सेटअप (Updated to 1.5-flash)
 genai.configure(api_key=GEMINI_API_KEY)
-ai_model = genai.GenerativeModel('gemini-flash-latest')
+ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -75,23 +75,6 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     except Exception as e:
         print("Gemini AI Error:", e)
         return f"नमस्ते {name}! आपकी प्रोफाइल सेव हो गई है।"
-
-# AI से वर्कआउट प्लान बनवाने का फ़ंक्शन
-def generate_ai_workout_plan(name, goal, gender):
-    prompt = f"""
-    आप Fit India AI के एक्सपर्ट फिटनेस कोच हैं।
-    प्रोफाइल: {name}, {gender}, Goal: {goal}.
-
-    संक्षिप्त हिंदी (Hinglish mix) में 5-दिन का होम/जिम वर्कआउट रूटीन बनाएं:
-    - मुख्य एक्सरसाइज के नाम और Markdown YouTube सर्च लिंक दें।
-    - वार्म-अप / कूल-डाउन टिप।
-    """
-    try:
-        response = ai_model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        print("Gemini AI Workout Error:", e)
-        return f"नमस्ते {name}! वर्कआउट प्लान जनरेट करने में थोड़ा समय लग रहा है।"
 
 # AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
@@ -130,72 +113,46 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
         print("Gemini Text AI Error:", e)
         return f"नमस्ते {name}! आपके सवाल का जवाब देने में तकनीकी समस्या आ रही है।"
 
-# स्टार्ट कमांड (स्मार्ट वेलकम + डायनामिक बटन लॉजिक)
+# स्टार्ट कमांड (बिना बटन के - प्रोफाइल के आधार पर उपयोग बताने वाला स्वागत संदेश)
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    user_id = message.chat.id
-    user_name = None
-    
-    try:
-        response = requests.get(
-            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name",
-            headers=SUPABASE_HEADERS
-        )
-        if response.status_code == 200:
-            data = response.json()
-            if data:
-                user_name = data[0].get('name')
-    except Exception as e:
-        print("Supabase fetch error in start:", e)
-    
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    
-    # अगर नया यूजर है - सिर्फ प्रोफाइल बनाने का बटन
-    if not user_name:
-        markup.add(KeyboardButton("Create Profile 📝", web_app=WebAppInfo(url=WEBAPP_URL)))
-        text_message = "Fit India AI में आपका स्वागत है! 🇮🇳\n\nकृपया अपनी फिटनेस प्रोफाइल बनाने के लिए नीचे दिए गए 'Create Profile 📝' बटन पर क्लिक करें:"
-    # अगर पुराना यूजर है - Create Profile का बटन गायब, सीधे ऑप्शंस मिलेंगे
-    else:
-        markup.add(KeyboardButton("Get Workout Routine 🏋️‍♂️"))
-        text_message = f"नमस्ते {user_name} जी! Fit India AI में आपका स्वागत है। 🇮🇳\n\nआप मुझसे डाइट, वर्कआउट या कैलोरी से जुड़ा कोई भी सवाल पूछ सकते हैं या नीचे दिए बटन का उपयोग कर सकते हैं:"
-    
-    bot.send_message(
-        message.chat.id, 
-        text_message, 
-        reply_markup=markup
-    )
-
-# वर्कआउट कमांड और बटन हैंडलर
-@bot.message_handler(commands=['workout'])
-def workout_command(message):
     user_id = message.chat.id
     user_data = None
     
     try:
         response = requests.get(
-            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name,goal,gender",
+            f"{SUPABASE_URL}/rest/v1/users?user_id=eq.{user_id}&select=name,goal,diet",
             headers=SUPABASE_HEADERS
         )
-        if response.status_code == 200 and response.json():
-            user_data = response.json()[0]
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                user_data = data[0]
     except Exception as e:
-        print("Supabase fetch error in workout:", e)
+        print("Supabase fetch error in start:", e)
     
-    if user_data:
-        name = user_data.get('name')
-        goal = user_data.get('goal')
-        gender = user_data.get('gender')
-        
-        bot.send_chat_action(message.chat.id, 'typing')
-        bot.send_message(message.chat.id, f"🤖 {name}, आपके गोल ({goal}) के अनुसार 5-दिन का वर्कआउट प्लान तैयार किया जा रहा है... ⏳", reply_markup=ReplyKeyboardRemove())
-        workout_plan = generate_ai_workout_plan(name, goal, gender)
-        send_long_message(message.chat.id, workout_plan)
+    # अगर नया यूजर है - सिर्फ प्रोफाइल बनाने का वेब ऐप बटन
+    if not user_data or not user_data.get('name'):
+        markup = ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(KeyboardButton("Create Profile 📝", web_app=WebAppInfo(url=WEBAPP_URL)))
+        text_message = "Fit India AI में आपका स्वागत है! 🇮🇳\n\nकृपया अपनी फिटनेस प्रोफाइल बनाने के लिए नीचे दिए गए 'Create Profile 📝' बटन पर क्लिक करें:"
+        bot.send_message(message.chat.id, text_message, reply_markup=markup)
+    # अगर पुराना यूजर है - कोई बटन नहीं, बल्कि उसकी गोल और डाइट के अनुसार उपयोग बताने वाला मैसेज
     else:
-        bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
-
-@bot.message_handler(func=lambda message: message.text == "Get Workout Routine 🏋️‍♂️")
-def workout_button_handler(message):
-    workout_command(message)
+        name = user_data.get('name')
+        goal = user_data.get('goal', 'Fitness')
+        diet = user_data.get('diet', 'Veg')
+        
+        text_message = (
+            f"नमस्ते {name}! Fit India AI में आपका स्वागत है। 🇮🇳\n\n"
+            f"मैं आपका पर्सनल AI फिटनेस कोच हूँ। आपकी प्रोफाइल (**{goal} | {diet}**) के अनुसार आप मेरा इस्तेमाल इन तरीकों से कर सकते हैं:\n\n"
+            f"1. 🏋️‍♂️ **वर्कआउट गाइड:** मुझसे अपनी पसंद का होम या जिम वर्कआउट रूटीन बनवा सकते हैं।\n"
+            f"2. 🥗 **डाइट और मील प्लान:** अपने लक्ष्य ({goal}) और डाइट ({diet}) के हिसाब से डाइट चार्ट मांग सकते हैं।\n"
+            f"3. 📸 **फोटो से कैलोरी स्कैन:** अपने खाने की फोटो भेजकर उसमें मौजूद कैलोरी और मैक्रोज़ जान सकते हैं।\n"
+            f"4. 💡 **फिटनेस सलाह:** सप्लीमेंट, न्यूट्रिशन, या वर्कआउट से जुड़ा कोई भी सवाल सीधे पूछ सकते हैं।\n\n"
+            f"👇 *आपको जो भी मदद चाहिए, बस नीचे सीधे टाइप करें!*"
+        )
+        bot.send_message(message.chat.id, text_message, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
 
 # वेब ऐप से डेटा रिसीव करके Supabase में सेव करना
 @bot.message_handler(content_types=['web_app_data'])
@@ -289,7 +246,7 @@ def handle_photo_message(message):
     else:
         bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
-# स्मार्ट टेक्स्ट Q&A चैट हैंडलर
+# स्मार्ट टेक्स्ट Q&A चैट हैंडलर (सभी नेचुरल सवालों और वर्कआउट/डाइट की माँग के लिए)
 @bot.message_handler(func=lambda message: True)
 def handle_all_text_messages(message):
     user_id = message.chat.id
