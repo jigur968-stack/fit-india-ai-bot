@@ -22,7 +22,7 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 # --------------------------------------------------------
 
-# Environment Variables से Tokens और Supabase Credentials उठाना (.strip() से फालतू स्पेसेस/न्यूटलाइन्स खत्म)
+# Environment Variables से Tokens और Supabase Credentials उठाना (.strip() सुरक्षा के लिए)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
@@ -114,19 +114,14 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
         print("Gemini Vision AI Error:", e)
         return "तस्वीर का विश्लेषण करने में कुछ दिक्कत आई। कृपया साफ फोटो दोबारा भेजें।"
 
-# AI टेक्स्ट चैट Q&A का फंक्शन (डिजिटल दोस्त + माफी + शॉर्ट रिस्पॉन्स लॉजिक के साथ)
+# AI टेक्स्ट चैट Q&A का फंक्शन
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
-    आप Fit India AI के स्मार्ट, दोस्ताना और विनम्र फिटनेस कोच ('डिजिटल दोस्त') हैं।
+    आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
     प्रोफाइल: {name}, {age}वर्ष, {gender}, Goal: {goal}, Diet: {diet}.
-    यूज़र का सवाल/संदेश: "{user_query}"
+    सवाल: "{user_query}"
 
-    सख्त निर्देश (Strict Rules):
-    1. जवाब बहुत छोटा, पॉइंट-टू-पॉइंट और केवल 3-4 पंक्तियों (Lines) में दें। बड़े पैराग्राफ बिल्कुल न लिखें ताकि यूज़र को पढ़ने में बोरियत (कंटाला) न हो।
-    2. अगर यूज़र आपके पिछले जवाब की किसी गलती (जैसे कैलोरी, मात्रा या गिनती) को सुधार रहा है, तो बिना झिझक के तुरंत शालीनता से माफी मांगें (जैसे: "अरे! माफ कीजिएगा, मुझसे गिनती/पहचान में चूक हो गई..." या "क्षमा करें, आपकी बात बिल्कुल सही है...")।
-    3. इसके बाद यूज़र के सुधार के अनुसार सही जानकारी दें।
-    4. बातचीत को दिलचस्प और एंगेजिंग बनाने के लिए अंत में एक छोटा सा प्रासंगिक सवाल पूछें।
-    5. आसान हिंदी (Hinglish mix) और उपयुक्त Emojis का उपयोग करें।
+    संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
     try:
         response = ai_model.generate_content(prompt)
@@ -246,11 +241,11 @@ def receive_web_app_data(message):
                 send_long_message(message.chat.id, ai_diet_plan)
         else:
             print("Supabase Save Error:", res.text)
-            bot.send_message(message.chat.id, f"⚠️ Supabase Error: {res.text}", reply_markup=ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, "डेटा सेव करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
+        bot.send_message(message.chat.id, "डेटा प्रोसेस करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
         print("Error:", e)
-        bot.send_message(message.chat.id, f"⚠️ Python Error: {e}", reply_markup=ReplyKeyboardRemove())
 
 # फोटो हैंडलर
 @bot.message_handler(content_types=['photo'])
@@ -292,7 +287,7 @@ def handle_photo_message(message):
             print("Photo processing error:", e)
             bot.send_message(message.chat.id, "⚠️ फोटो प्रोसेस करने में दिक्कत आई।")
     else:
-            bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
+        bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
 # स्मार्ट टेक्स्ट Q&A चैट हैंडलर
 @bot.message_handler(func=lambda message: True)
@@ -329,15 +324,6 @@ def handle_all_text_messages(message):
 # --- MAIN ENTRY POINT ---
 if __name__ == '__main__':
     print("Starting Telegram Bot on Render with Supabase Database...")
-    
-    # पेंडिंग अपडेट्स साफ़ करना
-    try:
-        clear_url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
-        requests.get(clear_url)
-        print("Telegram webhook cleared and pending updates dropped successfully.")
-    except Exception as e:
-        print("Webhook clear API error:", e)
-
     bot_thread = threading.Thread(target=run_flask)
     bot_thread.daemon = True
     bot_thread.start()
