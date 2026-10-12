@@ -40,7 +40,7 @@ SUPABASE_HEADERS = {
     "Prefer": "return=representation"
 }
 
-# Google GenAI Modern Client Setup (Updated to new SDK)
+# Google GenAI Modern Client Setup
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -56,7 +56,7 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# AI से डाइट प्लान बनवाने का फ़ंक्शन (Modern SDK with Fallback)
+# AI से डाइट प्लान बनवाने का फ़ंक्शन (Telegram Error Reporting के साथ)
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
     आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
@@ -68,13 +68,15 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     3. ✅ क्या खाएं और ❌ परहेज।
     4. 💡 2 मुख्य टिप्स।
     """
+    primary_err_msg = ""
     try:
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
         return response.text
-    except Exception:
+    except Exception as primary_err:
+        primary_err_msg = str(primary_err)
         try:
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
@@ -83,9 +85,9 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
             return response.text
         except Exception as e:
             print("Gemini AI Error:", e)
-            return f"नमस्ते {name}! आपकी प्रोफाइल सेव हो गई है।"
+            return f"⚠️ Diet AI Error Details:\n1. Primary: {primary_err_msg}\n2. Backup: {e}"
 
-# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन (Modern SDK with Fallback)
+# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन (Telegram Error Reporting के साथ)
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     image = Image.open(BytesIO(image_bytes))
     user_note = f"नोट: '{caption}'" if caption else ""
@@ -99,13 +101,15 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     2. अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
     3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
+    primary_err_msg = ""
     try:
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[prompt, image]
         )
         return response.text
-    except Exception:
+    except Exception as primary_err:
+        primary_err_msg = str(primary_err)
         try:
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
@@ -114,9 +118,9 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
             return response.text
         except Exception as e:
             print("Gemini Vision AI Error:", e)
-            return "तस्वीर का विश्लेषण करने में कुछ दिक्कत आई। कृपया साफ फोटो दोबारा भेजें।"
+            return f"⚠️ Vision AI Error Details:\n1. Primary: {primary_err_msg}\n2. Backup: {e}"
 
-# AI टेक्स्ट चैट Q&A का फंक्शन (Modern SDK with Superfast Fallback)
+# AI टेक्स्ट चैट Q&A का फंक्शन (Telegram Error Reporting के साथ)
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
     आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
@@ -125,6 +129,7 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
 
     संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
+    primary_err_msg = ""
     try:
         response = client.models.generate_content(
             model='gemini-2.5-flash',
@@ -133,6 +138,7 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
         if response and response.text:
             return response.text
     except Exception as e:
+        primary_err_msg = str(e)
         print("Primary model issue, switching to backup:", e)
 
     try:
@@ -143,7 +149,9 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
         if response and response.text:
             return response.text
     except Exception as e:
+        backup_err_msg = str(e)
         print("Backup model issue:", e)
+        return f"⚠️ Gemini AI Error Details:\n1. Primary Error: {primary_err_msg}\n2. Backup Error: {backup_err_msg}"
 
     return f"नमस्ते {name}! आपके सवाल का जवाब देने में तकनीकी समस्या आ रही है।"
 
@@ -230,10 +238,10 @@ def receive_web_app_data(message):
                 send_long_message(message.chat.id, ai_diet_plan)
         else:
             print("Supabase Save Error:", res.text)
-            bot.send_message(message.chat.id, "डेटा सेव करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, f"⚠️ Supabase Error: {res.text}", reply_markup=ReplyKeyboardRemove())
         
     except Exception as e:
-        bot.send_message(message.chat.id, "डेटा प्रोसेस करने में दिक्कत आई। कृपया दोबारा प्रयास करें।", reply_markup=ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, f"⚠️ WebApp Processing Error: {e}", reply_markup=ReplyKeyboardRemove())
         print("Error:", e)
 
 # फोटो हैंडलर
@@ -274,7 +282,7 @@ def handle_photo_message(message):
             send_long_message(message.chat.id, analysis_result)
         except Exception as e:
             print("Photo processing error:", e)
-            bot.send_message(message.chat.id, "⚠️ फोटो प्रोसेस करने में दिक्कत आई।")
+            bot.send_message(message.chat.id, f"⚠️ Photo Handler Error: {e}")
     else:
         bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
@@ -327,7 +335,6 @@ if __name__ == '__main__':
     while True:
         try:
             print("Bot polling started...")
-            # infinity_polling और skip_pending कनेक्शन को स्थिर रखेगा और 409 एरर रोकेगा
             bot.infinity_polling(timeout=20, long_polling_timeout=20, skip_pending=True)
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
