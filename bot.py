@@ -154,7 +154,7 @@ def start_command(message):
     if not user_name:
         markup.add(KeyboardButton("Create Profile 📝", web_app=WebAppInfo(url=WEBAPP_URL)))
         text_message = "Fit India AI में आपका स्वागत है! 🇮🇳\n\nकृपया अपनी फिटनेस प्रोफाइल बनाने के लिए नीचे दिए गए 'Create Profile 📝' बटन पर क्लिक करें:"
-    # अगर पुराना यूजर है - Create Profile का बटन गायब, सीधे ऑप्शन मिलेंगे
+    # अगर पुराना यूजर है - Create Profile का बटन गायब, सीधे ऑप्शंस मिलेंगे
     else:
         markup.add(KeyboardButton("Get Workout Routine 🏋️‍♂️"))
         text_message = f"नमस्ते {user_name} जी! Fit India AI में आपका स्वागत है। 🇮🇳\n\nआप मुझसे डाइट, वर्कआउट या कैलोरी से जुड़ा कोई भी सवाल पूछ सकते हैं या नीचे दिए बटन का उपयोग कर सकते हैं:"
