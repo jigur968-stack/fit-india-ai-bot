@@ -336,8 +336,8 @@ if __name__ == '__main__':
     while True:
         try:
             print("Bot polling started...")
-            # यह skip_pending=True पुराने सारे अटके हुए सेशन को तुरंत साफ़ कर देगा
-            bot.remove_webhook(skip_pending=True)
+            # सुरक्षित वेबहुक रिमूव कॉल (बिना skip_pending के)
+            bot.remove_webhook()
             bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
