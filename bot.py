@@ -56,7 +56,7 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# AI से डाइट प्लान बनवाने का फ़ंक्शन (Multi-Model Quota Fallback)
+# AI से डाइट प्लान बनवाने का फ़ंक्शन (Latest Stable Models)
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
     आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
@@ -68,7 +68,7 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     3. ✅ क्या खाएं और ❌ परहेज।
     4. 💡 2 मुख्य टिप्स।
     """
-    models_to_try = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-pro']
+    models_to_try = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
     errors = []
 
     for m in models_to_try:
@@ -78,9 +78,9 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
                 return response.text
         except Exception as e:
             errors.append(f"{m}: {e}")
-            time.sleep(1)
+            time.sleep(2)
 
-    return f"⚠️ All Models Quota Exhausted:\n" + "\n".join(errors)
+    return f"⚠️ All AI Models Busy/Unavailable:\n" + "\n".join(errors)
 
 # AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
@@ -96,7 +96,7 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     2. अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
     3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
-    models_to_try = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-pro']
+    models_to_try = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
     errors = []
 
     for m in models_to_try:
@@ -106,11 +106,11 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
                 return response.text
         except Exception as e:
             errors.append(f"{m}: {e}")
-            time.sleep(1)
+            time.sleep(2)
 
-    return f"⚠️ Vision AI Quota Exhausted:\n" + "\n".join(errors)
+    return f"⚠️ Vision AI Busy:\n" + "\n".join(errors)
 
-# AI टेक्स्ट चैट Q&A का फंक्शन (Smart Fallback Router)
+# AI टेक्स्ट चैट Q&A का फंक्शन (High Stability Fallback Router)
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
     आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
@@ -119,7 +119,7 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
 
     संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
-    models_to_try = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-pro']
+    models_to_try = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
     errors = []
 
     for m in models_to_try:
@@ -130,9 +130,9 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
         except Exception as e:
             print(f"Model {m} failed: {e}")
             errors.append(f"{m}: {e}")
-            time.sleep(1)
+            time.sleep(2)
 
-    return f"⚠️ AI Quota Details:\n" + "\n".join(errors)
+    return f"⚠️ AI Quota / Service Details:\n" + "\n".join(errors)
 
 # स्टार्ट कमांड
 @bot.message_handler(commands=['start'])
