@@ -285,11 +285,18 @@ if __name__ == '__main__':
     bot_thread.daemon = True
     bot_thread.start()
 
+    # पुराने अटके हुए वेबहुक / मैसेज साफ़ करना
+    try:
+        bot.remove_webhook()
+        time.sleep(1)
+    except Exception as e:
+        print("Webhook Removal Warning:", e)
+
     while True:
         try:
             print("Bot polling started...")
-            bot.remove_webhook()
-            bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
+            # infinity_polling और skip_pending कनेक्शन को स्थिर रखेगा और 409 एरर रोकेगा
+            bot.infinity_polling(timeout=20, long_polling_timeout=20, skip_pending=True)
         except Exception as e:
             print(f"Connection lost ({e}). Retrying in 5 seconds...")
             time.sleep(5)
