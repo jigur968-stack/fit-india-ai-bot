@@ -56,7 +56,7 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# AI से डाइट प्लान बनवाने का फ़ंक्शन (Pro Model as Primary, Flash as Backup)
+# AI से डाइट प्लान बनवाने का फ़ंक्शन (Gemini 3.8 Flash)
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
     आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
@@ -68,24 +68,23 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     3. ✅ क्या खाएं और ❌ परहेज।
     4. 💡 2 मुख्य टिप्स।
     """
-    primary_err_msg = ""
     try:
         response = client.models.generate_content(
-            model='gemini-1.5-pro',
+            model='gemini-3.8-flash',
             contents=prompt
         )
         return response.text
-    except Exception as primary_err:
-        primary_err_msg = str(primary_err)
+    except Exception as e:
+        print("Gemini AI Error:", e)
+        time.sleep(1)
         try:
             response = client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=prompt
             )
             return response.text
-        except Exception as e:
-            print("Gemini AI Error:", e)
-            return f"⚠️ Diet AI Error Details:\n1. Pro: {primary_err_msg}\n2. Flash: {e}"
+        except Exception as err:
+            return f"⚠️ Diet AI Error: {err}"
 
 # AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
@@ -101,26 +100,25 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     2. अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
     3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
-    primary_err_msg = ""
     try:
         response = client.models.generate_content(
-            model='gemini-1.5-pro',
+            model='gemini-3.8-flash',
             contents=[prompt, image]
         )
         return response.text
-    except Exception as primary_err:
-        primary_err_msg = str(primary_err)
+    except Exception as e:
+        print("Gemini Vision AI Error:", e)
+        time.sleep(1)
         try:
             response = client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=[prompt, image]
             )
             return response.text
-        except Exception as e:
-            print("Gemini Vision AI Error:", e)
-            return f"⚠️ Vision AI Error Details:\n1. Pro: {primary_err_msg}\n2. Flash: {e}"
+        except Exception as err:
+            return f"⚠️ Vision AI Error: {err}"
 
-# AI टेक्स्ट चैट Q&A का फंक्शन (Pro + Flash Fallback)
+# AI टेक्स्ट चैट Q&A का फंक्शन
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
     आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
@@ -129,18 +127,6 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
 
     संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
-    primary_err_msg = ""
-    try:
-        response = client.models.generate_content(
-            model='gemini-1.5-pro',
-            contents=prompt
-        )
-        if response and response.text:
-            return response.text
-    except Exception as e:
-        primary_err_msg = str(e)
-        print("Primary Pro model issue, switching to backup:", e)
-
     try:
         response = client.models.generate_content(
             model='gemini-3.8-flash',
@@ -149,13 +135,22 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
         if response and response.text:
             return response.text
     except Exception as e:
-        backup_err_msg = str(e)
-        print("Backup Flash model issue:", e)
-        return f"⚠️ Gemini AI Error Details:\n1. Pro Error: {primary_err_msg}\n2. Flash Error: {backup_err_msg}"
+        print("Model issue, retrying:", e)
+        time.sleep(1)
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.8-flash',
+            contents=prompt
+        )
+        if response and response.text:
+            return response.text
+    except Exception as err:
+        return f"⚠️ Gemini AI Error: {err}"
 
     return f"नमस्ते {name}! आपके सवाल का जवाब देने में तकनीकी समस्या आ रही है।"
 
-# स्टार्ट कमांड (बिना बटन के - प्रोफाइल के आधार पर उपयोग बताने वाला स्वागत संदेश)
+# स्टार्ट कमांड
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.chat.id
@@ -286,7 +281,7 @@ def handle_photo_message(message):
     else:
         bot.send_message(message.chat.id, "⚠️ पहले कृपया 'Create Profile 📝' बटन पर क्लिक करके अपनी प्रोफाइल बनाएं!")
 
-# स्मार्ट टेक्स्ट Q&A चैट हैंडलर (सभी नेचुरल सवालों और वर्कआउट/डाइट की माँग के लिए)
+# स्मार्ट टेक्स्ट Q&A चैट हैंडलर
 @bot.message_handler(func=lambda message: True)
 def handle_all_text_messages(message):
     user_id = message.chat.id
