@@ -4,6 +4,7 @@ import json
 import os
 import time
 import requests
+import base64
 from google import genai
 from PIL import Image
 from io import BytesIO
@@ -15,23 +16,22 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Fit India AI Bot is running smoothly with Multi-AI Cascade Engine on Render! 🚀"
+    return "Fit India AI Bot is running smoothly with Groq & Gemini Engine! 🚀"
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 # --------------------------------------------------------
 
-# Environment Variables से Tokens और Supabase Credentials उठाना (.strip() सुरक्षा के लिए)
+# Environment Variables से Keys उठाना
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 
 if not BOT_TOKEN or not SUPABASE_URL or not SUPABASE_KEY:
-    print("Error: आवश्यक टोकन या Supabase Credentials नहीं मिले! कृपया Render Environment Variables चेक करें।")
+    print("Error: आवश्यक टोकन या Supabase Credentials नहीं मिले!")
     exit()
 
 # Supabase REST API Headers
@@ -42,15 +42,14 @@ SUPABASE_HEADERS = {
     "Prefer": "return=representation"
 }
 
-# Google GenAI Modern Client Setup
+# Google GenAI Modern Client Setup (फोटो स्कैन के लिए)
 gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# GitHub URL (Version 16)
+# GitHub WebApp URL (v=16)
 WEBAPP_URL = "https://jigur968-stack.github.io/fit-india-ai-bot/index.html?v=16"
 
-# लंबी चैट/मैसेज को टुकड़ों में भेजने का सेफ फंक्शन
 def send_long_message(chat_id, text):
     if len(text) <= 4000:
         bot.send_message(chat_id, text, disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
@@ -58,14 +57,12 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# ⚡ ULTIMATE MULTI-AI CASCADE ROUTER (Groq -> Gemini Flash -> Gemini Pro -> OpenAI)
+# ⚡ DUAL ENGINE AI ROUTER (Groq for Text + Gemini for Vision)
 def call_multi_ai(prompt, image=None):
-    gemini_models = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
-
-    # 1. फोटो स्कैन (Vision) के लिए Gemini मॉडल्स की क्रमिक श्रृंखला
+    # 1. फोटो स्कैन (Vision) के लिए Gemini का उपयोग
     if image:
         if gemini_client:
-            for m in gemini_models:
+            for m in ['gemini-2.5-flash', 'gemini-1.5-flash']:
                 try:
                     res = gemini_client.models.generate_content(
                         model=m,
@@ -74,11 +71,11 @@ def call_multi_ai(prompt, image=None):
                     if res and res.text:
                         return res.text
                 except Exception as e:
-                    print(f"Gemini Vision ({m}) Error: {e}")
+                    print(f"Gemini Vision Error ({m}): {e}")
                     time.sleep(1)
         return "⚠️ फोटो स्कैन करने में समस्या आई। कृपया पुनः प्रयास करें!"
 
-    # 2. टेक्स्ट चैट के लिए: Step A - Groq Llama 3.3 (सुपर-फास्ट प्राइमरी: 1-2 सेकंड)
+    # 2. टेक्स्ट चैट और डाइट प्लान के लिए Groq Llama 3.3 (100% Free & Fast)
     if GROQ_API_KEY:
         try:
             url = "https://api.groq.com/openai/v1/chat/completions"
@@ -95,43 +92,11 @@ def call_multi_ai(prompt, image=None):
             if res.status_code == 200:
                 return res.json()['choices'][0]['message']['content']
             else:
-                print(f"Groq Failed ({res.status_code}): {res.text}")
+                print(f"Groq Error ({res.status_code}): {res.text}")
         except Exception as e:
             print(f"Groq Exception: {e}")
 
-    # 3. टेक्स्ट चैट के लिए: Step B - Gemini Models Backup (3.8-flash & 3.1-pro-preview)
-    if gemini_client:
-        for m in gemini_models:
-            try:
-                res = gemini_client.models.generate_content(
-                    model=m,
-                    contents=prompt
-                )
-                if res and res.text:
-                    return res.text
-            except Exception as e:
-                print(f"Gemini Model ({m}) Fallback Error: {e}")
-                time.sleep(1)
-
-    # 4. टेक्स्ट चैट के लिए: Step C - OpenAI Backup (अंतिम सुरक्षा चक्र)
-    if OPENAI_API_KEY:
-        try:
-            url = "https://api.openai.com/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "gpt-3.5-turbo",
-                "messages": [{"role": "user", "content": prompt}]
-            }
-            res = requests.post(url, headers=headers, json=payload, timeout=10)
-            if res.status_code == 200:
-                return res.json()['choices'][0]['message']['content']
-        except Exception as e:
-            print(f"OpenAI Fallback Error: {e}")
-
-    return "⚠️ सभी AI सर्विसेज अभी व्यस्त हैं। कृपया 5 सेकंड बाद पुनः प्रयास करें!"
+    return "⚠️ AI सर्विस अभी व्यस्त है। कृपया 5 सेकंड बाद पुनः प्रयास करें!"
 
 # AI से डाइट प्लान बनवाने का फ़ंक्शन
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
@@ -147,7 +112,7 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     """
     return call_multi_ai(prompt)
 
-# AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
+# AI विज़न से खाने की फोटो एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     image = Image.open(BytesIO(image_bytes))
     user_note = f"नोट: '{caption}'" if caption else ""
@@ -174,7 +139,7 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
     """
     return call_multi_ai(prompt)
 
-# स्टार्ट कमांड
+# /start कमांड
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.chat.id
@@ -339,12 +304,12 @@ def handle_all_text_messages(message):
 
 # --- MAIN ENTRY POINT ---
 if __name__ == '__main__':
-    print("Starting Telegram Bot on Render with Ultimate Multi-AI Cascade Engine...")
+    print("Starting Telegram Bot on Render with Groq & Gemini Engine...")
     bot_thread = threading.Thread(target=run_flask)
     bot_thread.daemon = True
     bot_thread.start()
 
-    # पुराने अटके हुए वेबहुक / मैसेज साफ़ करना
+    # पुराने अटके हुए वेबहुक / पॉलिंग को साफ़ करना (Error 409 से बचने के लिए)
     try:
         bot.remove_webhook()
         time.sleep(1)
