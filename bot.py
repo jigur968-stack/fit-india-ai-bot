@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Fit India AI Bot is running smoothly with Supabase on Render! 🚀"
+    return "Fit India AI Bot is running smoothly with Multi-AI Cascade Engine on Render! 🚀"
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
@@ -25,10 +25,12 @@ def run_flask():
 # Environment Variables से Tokens और Supabase Credentials उठाना (.strip() सुरक्षा के लिए)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 
-if not BOT_TOKEN or not GEMINI_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
+if not BOT_TOKEN or not SUPABASE_URL or not SUPABASE_KEY:
     print("Error: आवश्यक टोकन या Supabase Credentials नहीं मिले! कृपया Render Environment Variables चेक करें।")
     exit()
 
@@ -41,7 +43,7 @@ SUPABASE_HEADERS = {
 }
 
 # Google GenAI Modern Client Setup
-client = genai.Client(api_key=GEMINI_API_KEY)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -56,23 +58,80 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# ⚡ स्मार्ट AI रिस्पांस फ़ंक्शन (Auto-Retry Fast Mechanism)
-def call_gemini_fast(prompt, image=None):
-    models = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
-    
-    for m in models:
-        # प्रत्येक मॉडल पर 2 बार तेज़ रिट्राई
-        for attempt in range(2):
+# ⚡ ULTIMATE MULTI-AI CASCADE ROUTER (Groq -> Gemini Flash -> Gemini Pro -> OpenAI)
+def call_multi_ai(prompt, image=None):
+    gemini_models = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
+
+    # 1. फोटो स्कैन (Vision) के लिए Gemini मॉडल्स की क्रमिक श्रृंखला
+    if image:
+        if gemini_client:
+            for m in gemini_models:
+                try:
+                    res = gemini_client.models.generate_content(
+                        model=m,
+                        contents=[prompt, image]
+                    )
+                    if res and res.text:
+                        return res.text
+                except Exception as e:
+                    print(f"Gemini Vision ({m}) Error: {e}")
+                    time.sleep(1)
+        return "⚠️ फोटो स्कैन करने में समस्या आई। कृपया पुनः प्रयास करें!"
+
+    # 2. टेक्स्ट चैट के लिए: Step A - Groq Llama 3.3 (सुपर-फास्ट प्राइमरी: 1-2 सेकंड)
+    if GROQ_API_KEY:
+        try:
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            if res.status_code == 200:
+                return res.json()['choices'][0]['message']['content']
+            else:
+                print(f"Groq Failed ({res.status_code}): {res.text}")
+        except Exception as e:
+            print(f"Groq Exception: {e}")
+
+    # 3. टेक्स्ट चैट के लिए: Step B - Gemini Models Backup (3.8-flash & 3.1-pro-preview)
+    if gemini_client:
+        for m in gemini_models:
             try:
-                contents = [prompt, image] if image else prompt
-                response = client.models.generate_content(model=m, contents=contents)
-                if response and response.text:
-                    return response.text
+                res = gemini_client.models.generate_content(
+                    model=m,
+                    contents=prompt
+                )
+                if res and res.text:
+                    return res.text
             except Exception as e:
-                print(f"Model {m} attempt {attempt+1} failed: {e}")
-                time.sleep(1) # केवल 1 सेकंड का छोटा विराम स्पीड के लिए
-                
-    return "⚠️ AI अभी थोड़ा व्यस्त है। कृपया 5 सेकंड बाद पुनः प्रयास करें!"
+                print(f"Gemini Model ({m}) Fallback Error: {e}")
+                time.sleep(1)
+
+    # 4. टेक्स्ट चैट के लिए: Step C - OpenAI Backup (अंतिम सुरक्षा चक्र)
+    if OPENAI_API_KEY:
+        try:
+            url = "https://api.openai.com/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "gpt-3.5-turbo",
+                "messages": [{"role": "user", "content": prompt}]
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            if res.status_code == 200:
+                return res.json()['choices'][0]['message']['content']
+        except Exception as e:
+            print(f"OpenAI Fallback Error: {e}")
+
+    return "⚠️ सभी AI सर्विसेज अभी व्यस्त हैं। कृपया 5 सेकंड बाद पुनः प्रयास करें!"
 
 # AI से डाइट प्लान बनवाने का फ़ंक्शन
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
@@ -86,7 +145,7 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     3. ✅ क्या खाएं और ❌ परहेज।
     4. 💡 2 मुख्य टिप्स।
     """
-    return call_gemini_fast(prompt)
+    return call_multi_ai(prompt)
 
 # AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
@@ -102,7 +161,7 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     2. अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
     3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
-    return call_gemini_fast(prompt, image)
+    return call_multi_ai(prompt, image)
 
 # AI टेक्स्ट चैट Q&A का फंक्शन
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
@@ -113,7 +172,7 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
 
     संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
-    return call_gemini_fast(prompt)
+    return call_multi_ai(prompt)
 
 # स्टार्ट कमांड
 @bot.message_handler(commands=['start'])
@@ -280,7 +339,7 @@ def handle_all_text_messages(message):
 
 # --- MAIN ENTRY POINT ---
 if __name__ == '__main__':
-    print("Starting Telegram Bot on Render with Supabase Database...")
+    print("Starting Telegram Bot on Render with Ultimate Multi-AI Cascade Engine...")
     bot_thread = threading.Thread(target=run_flask)
     bot_thread.daemon = True
     bot_thread.start()
