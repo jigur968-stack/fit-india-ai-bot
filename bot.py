@@ -56,7 +56,25 @@ def send_long_message(chat_id, text):
         for i in range(0, len(text), 4000):
             bot.send_message(chat_id, text[i:i+4000], disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
 
-# AI से डाइट प्लान बनवाने का फ़ंक्शन (Latest Stable Models)
+# ⚡ स्मार्ट AI रिस्पांस फ़ंक्शन (Auto-Retry Fast Mechanism)
+def call_gemini_fast(prompt, image=None):
+    models = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
+    
+    for m in models:
+        # प्रत्येक मॉडल पर 2 बार तेज़ रिट्राई
+        for attempt in range(2):
+            try:
+                contents = [prompt, image] if image else prompt
+                response = client.models.generate_content(model=m, contents=contents)
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                print(f"Model {m} attempt {attempt+1} failed: {e}")
+                time.sleep(1) # केवल 1 सेकंड का छोटा विराम स्पीड के लिए
+                
+    return "⚠️ AI अभी थोड़ा व्यस्त है। कृपया 5 सेकंड बाद पुनः प्रयास करें!"
+
+# AI से डाइट प्लान बनवाने का फ़ंक्शन
 def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     prompt = f"""
     आप Fit India AI के एक्सपर्ट न्यूट्रिशनिस्ट हैं।
@@ -68,19 +86,7 @@ def generate_ai_diet_plan(name, age, gender, height, weight, goal, diet):
     3. ✅ क्या खाएं और ❌ परहेज।
     4. 💡 2 मुख्य टिप्स।
     """
-    models_to_try = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
-    errors = []
-
-    for m in models_to_try:
-        try:
-            response = client.models.generate_content(model=m, contents=prompt)
-            if response and response.text:
-                return response.text
-        except Exception as e:
-            errors.append(f"{m}: {e}")
-            time.sleep(2)
-
-    return f"⚠️ All AI Models Busy/Unavailable:\n" + "\n".join(errors)
+    return call_gemini_fast(prompt)
 
 # AI विज़न से खाने की फोटो और कैप्शन एनालाइज करने का फंक्शन
 def analyze_meal_photo(image_bytes, caption, name, goal, diet):
@@ -96,21 +102,9 @@ def analyze_meal_photo(image_bytes, caption, name, goal, diet):
     2. अनुमानित कैलोरी और मैक्रोज़ (Protein, Carbs, Fats) बताएं।
     3. यूज़र के लक्ष्य ({goal}) के अनुसार छोटा सुझाव दें।
     """
-    models_to_try = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
-    errors = []
+    return call_gemini_fast(prompt, image)
 
-    for m in models_to_try:
-        try:
-            response = client.models.generate_content(model=m, contents=[prompt, image])
-            if response and response.text:
-                return response.text
-        except Exception as e:
-            errors.append(f"{m}: {e}")
-            time.sleep(2)
-
-    return f"⚠️ Vision AI Busy:\n" + "\n".join(errors)
-
-# AI टेक्स्ट चैट Q&A का फंक्शन (High Stability Fallback Router)
+# AI टेक्स्ट चैट Q&A का फंक्शन
 def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_query):
     prompt = f"""
     आप Fit India AI के स्मार्ट फिटनेस कोच हैं।
@@ -119,20 +113,7 @@ def generate_ai_text_reply(name, age, gender, height, weight, goal, diet, user_q
 
     संक्षिप्त, सटीक और मददगार जवाब हिंदी (Hinglish mix) में दें।
     """
-    models_to_try = ['gemini-3.8-flash', 'gemini-3.1-pro-preview']
-    errors = []
-
-    for m in models_to_try:
-        try:
-            response = client.models.generate_content(model=m, contents=prompt)
-            if response and response.text:
-                return response.text
-        except Exception as e:
-            print(f"Model {m} failed: {e}")
-            errors.append(f"{m}: {e}")
-            time.sleep(2)
-
-    return f"⚠️ AI Quota / Service Details:\n" + "\n".join(errors)
+    return call_gemini_fast(prompt)
 
 # स्टार्ट कमांड
 @bot.message_handler(commands=['start'])
